@@ -1,0 +1,22 @@
+{
+  "name": "bug-report-constructor-app",
+  "title": "Bug Report Constructor",
+  "description": "",
+  "$schema": "https://json.schemastore.org/youtrack-app.json",
+  "vendor": {
+    "name": "E.V",
+    "url": "https://github.com/ve-ev"
+  },
+  "icon": "icon.svg",
+  "widgets": [
+
+    {
+      "key": "bug-report-constuctor-app",
+      "name": "Bug-Report-Constuctor-App",
+      "indexPath": "bug-report-constuctor-app/index.html",
+      "extensionPoint": "MAIN_MENU_ITEM",
+      "iconPath": "bug-report-constuctor-app/widget-icon.svg",
+      "description": ""
+    }
+  ]
+}
