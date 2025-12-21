@@ -4,3 +4,73 @@
   gap: calc(var(--ring-unit) * 2);
   margin: calc(var(--ring-unit) / 2);
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ring-unit);
+  align-items: center;
+}
+
+.status {
+  padding: calc(var(--ring-unit) * 1.5);
+  border-radius: var(--ring-unit);
+  font-size: 13px;
+}
+
+.statusOk {
+  background: rgba(0, 170, 0, 0.08);
+  border: 1px solid rgba(0, 170, 0, 0.25);
+}
+
+.statusError {
+  background: rgba(220, 0, 0, 0.08);
+  border: 1px solid rgba(220, 0, 0, 0.25);
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(var(--ring-unit) * 2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+}
+
+.fieldLabel {
+  font-weight: 600;
+}
+
+.fieldInput {
+  width: 100%;
+  resize: vertical;
+  padding: var(--ring-unit);
+  border-radius: var(--ring-unit);
+  border: 1px solid var(--ring-borders-color);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+}
+
+.previewTitle {
+  font-weight: 600;
+}
+
+.previewBody {
+  margin: 0;
+  padding: calc(var(--ring-unit) * 1.5);
+  border: 1px solid var(--ring-borders-color);
+  border-radius: var(--ring-unit);
+  background: var(--ring-content-background-color);
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.4;
+}

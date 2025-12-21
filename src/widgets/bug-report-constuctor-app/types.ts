@@ -1,5 +1,5 @@
 export interface SavedBlocks {
-    summaryChunks: string;
+    summaryChunks: string[];
     preconditions: string;
     steps: string[];
     additionalInfo: string;
