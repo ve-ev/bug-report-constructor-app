@@ -1,8 +1,10 @@
 import React, {memo, useCallback} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
+import {API} from "./api.ts";
 
 // Register widget in YouTrack. To learn more, see https://www.jetbrains.com/help/youtrack/devportal-apps/apps-host-api.html
 const host = await YTApp.register();
+const api = new API(host);
 
 const AppComponent: React.FunctionComponent = () => {
   const callBackend = useCallback(async () => {

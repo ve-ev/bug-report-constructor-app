@@ -1,0 +1,12 @@
+{
+  "entityTypeExtensions": [
+    {
+      "entityType": "User",
+      "properties": {
+        "savedBlocks" : {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}
