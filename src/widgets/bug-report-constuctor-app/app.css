@@ -5,6 +5,11 @@
   margin: calc(var(--ring-unit) / 2);
 }
 
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -73,4 +78,12 @@
   overflow: auto;
   font-size: 12px;
   line-height: 1.4;
+}
+
+.apiPlayground {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 2);
+  padding-top: calc(var(--ring-unit) * 2);
+  border-top: 1px solid var(--ring-borders-color);
 }
