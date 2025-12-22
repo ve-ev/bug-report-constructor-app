@@ -1,4 +1,4 @@
-import type {LegacySavedBlocks, SavedBlocks} from './types.ts';
+import type {LegacySavedBlocks, SavedBlocks} from '../types.ts';
 
 export function isSavedBlocksV2(value: unknown): value is SavedBlocks {
   return (

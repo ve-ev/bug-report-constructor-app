@@ -2,8 +2,8 @@ import React, {useCallback, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDraggable} from '@dnd-kit/core';
 
-import type {SavedBlocks} from './types.ts';
-import {computeIsBusy, computeLoadSaveTitles, computeStatus} from './ui-state.ts';
+import type {SavedBlocks} from '../types.ts';
+import {computeIsBusy, computeLoadSaveTitles, computeStatus} from '../tools/ui-state.ts';
 
 export type SavedBlocksTab = keyof SavedBlocks;
 

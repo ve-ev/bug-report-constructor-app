@@ -1,7 +1,7 @@
 import React, {memo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {ApiPlayground} from './api-playground.tsx';
-import {Constructor} from './constructor.tsx';
+import {Constructor} from './components/constructor.tsx';
 
 const AppComponent: React.FunctionComponent = () => {
   const [showPlayground, setShowPlayground] = useState(false);

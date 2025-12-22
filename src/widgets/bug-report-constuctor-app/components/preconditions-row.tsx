@@ -3,7 +3,7 @@ import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
-import {getSelectionFromElement, insertTextAtSelection} from './text-insert.ts';
+import {getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 
 export type PreconditionsRowProps = {
   dropEnabled: boolean;

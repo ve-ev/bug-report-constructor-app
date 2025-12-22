@@ -3,7 +3,7 @@ import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDroppable} from '@dnd-kit/core';
 
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
-import {createId} from './id.ts';
+import {createId} from '../id.ts';
 
 export const STEPS_DROP_ID = 'issue-drop-steps';
 

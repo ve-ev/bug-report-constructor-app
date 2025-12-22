@@ -5,6 +5,9 @@
       "properties": {
         "savedBlocks" : {
           "type": "string"
+        },
+        "outputFormats": {
+          "type": "string"
         }
       }
     }

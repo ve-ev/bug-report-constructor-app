@@ -3,8 +3,8 @@ import {EditableHeading, Levels, Size} from '@jetbrains/ring-ui-built/components
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
-import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from './summary-row-utils.ts';
-import {getSelectionFromElement, insertTextAtSelection} from './text-insert.ts';
+import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
+import {getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 
 const SUMMARY_AUTOSAVE_MS = 650;
 
