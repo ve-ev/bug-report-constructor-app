@@ -10,37 +10,25 @@ function defaultSavedBlocks() {
   };
 }
 
-function isSavedBlocksV2(value) {
-  return (
-    value &&
-    typeof value === 'object' &&
-    Array.isArray(value.summary) &&
-    Array.isArray(value.preconditions) &&
-    Array.isArray(value.steps)
-  );
+function isRecord(value) {
+  return !!value && typeof value === 'object';
 }
 
-function isSavedBlocksV1(value) {
-  return (
-    value &&
-    typeof value === 'object' &&
-    Array.isArray(value.summaryChunks) &&
-    typeof value.preconditions === 'string' &&
-    Array.isArray(value.steps) &&
-    typeof value.additionalInfo === 'string'
-  );
+function arrayOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function normalizeSavedBlocks(value) {
-  if (isSavedBlocksV2(value)) {
-    return value;
+  if (!isRecord(value)) {
+    return null;
   }
 
-  if (isSavedBlocksV1(value)) {
+  // Canonical format (current)
+  if (Array.isArray(value.summary) && Array.isArray(value.preconditions) && Array.isArray(value.steps)) {
     return {
-      summary: value.summaryChunks,
-      preconditions: value.preconditions.trim() ? [value.preconditions] : [],
-      steps: value.steps
+      summary: arrayOrEmpty(value.summary),
+      preconditions: arrayOrEmpty(value.preconditions),
+      steps: arrayOrEmpty(value.steps)
     };
   }
 

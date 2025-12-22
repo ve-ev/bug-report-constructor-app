@@ -6,11 +6,3 @@ export interface SavedBlocks {
   /** Reusable blocks for Steps tab. */
   steps: string[];
 }
-
-/** Legacy format kept for backward compatibility with already-saved user data. */
-export interface LegacySavedBlocks {
-  summaryChunks: string[];
-  preconditions: string;
-  steps: string[];
-  additionalInfo: string;
-}

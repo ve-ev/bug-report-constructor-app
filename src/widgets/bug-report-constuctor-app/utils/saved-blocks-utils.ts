@@ -1,24 +1,22 @@
-import type {LegacySavedBlocks, SavedBlocks} from '../types.ts';
+import type {SavedBlocks} from '../types.ts';
 
-export function isSavedBlocksV2(value: unknown): value is SavedBlocks {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    Array.isArray((value as SavedBlocks).summary) &&
-    Array.isArray((value as SavedBlocks).preconditions) &&
-    Array.isArray((value as SavedBlocks).steps)
-  );
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object';
+}
+
+export function isSavedBlocks(value: unknown): value is SavedBlocks {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return Array.isArray(value.summary) && Array.isArray(value.preconditions) && Array.isArray(value.steps);
 }
 
 function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
-function stringOrEmpty(value: string | null | undefined): string {
-  return typeof value === 'string' ? value : '';
-}
-
-function normalizeBlocksV2(value: SavedBlocks): SavedBlocks {
+function normalizeBlocks(value: SavedBlocks): SavedBlocks {
   return {
     summary: arrayOrEmpty(value.summary),
     preconditions: arrayOrEmpty(value.preconditions),
@@ -26,16 +24,10 @@ function normalizeBlocksV2(value: SavedBlocks): SavedBlocks {
   };
 }
 
-function normalizeBlocksLegacy(value: LegacySavedBlocks | null | undefined): SavedBlocks {
-  const summary = arrayOrEmpty(value?.summaryChunks);
-  const preconditionsValue = stringOrEmpty(value?.preconditions).trim();
-  const preconditions = preconditionsValue ? [preconditionsValue] : [];
-  const steps = arrayOrEmpty(value?.steps);
-  return {summary, preconditions, steps};
-}
+export function normalizeSavedBlocks(value: unknown): SavedBlocks {
+  if (isSavedBlocks(value)) {
+    return normalizeBlocks(value);
+  }
 
-export function normalizeSavedBlocks(value: SavedBlocks | LegacySavedBlocks | null | undefined): SavedBlocks {
-  return isSavedBlocksV2(value)
-    ? normalizeBlocksV2(value)
-    : normalizeBlocksLegacy(value as LegacySavedBlocks | null | undefined);
+  return {summary: [], preconditions: [], steps: []};
 }

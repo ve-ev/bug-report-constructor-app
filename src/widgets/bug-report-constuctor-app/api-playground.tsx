@@ -42,7 +42,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const [summaryChunksText, setSummaryChunksText] = useState('');
+  const [summaryText, setSummaryText] = useState('');
   const [preconditionsText, setPreconditionsText] = useState('');
   const [stepsText, setStepsText] = useState('');
 
@@ -67,7 +67,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
   }, []);
 
   const collectedBlocks = useMemo<SavedBlocks>(() => {
-    const summaryChunks = summaryChunksText
+    const summary = summaryText
       .split(/\r?\n/)
       .map(s => s.trim())
       .filter(Boolean);
@@ -83,11 +83,11 @@ export const ApiPlayground: React.FunctionComponent = () => {
       .filter(Boolean);
 
     return {
-      summary: summaryChunks,
+      summary,
       preconditions,
       steps,
     };
-  }, [preconditionsText, stepsText, summaryChunksText]);
+  }, [preconditionsText, stepsText, summaryText]);
 
   const load = useCallback(async () => {
     if (!api) {
@@ -100,7 +100,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
     try {
       const result = normalizeSavedBlocks(await api.getSavedBlocks());
       setLastLoaded(result);
-      setSummaryChunksText(result.summary.join('\n'));
+      setSummaryText(result.summary.join('\n'));
       setPreconditionsText(result.preconditions.join('\n'));
       setStepsText(result.steps.join('\n'));
       setMessage('Loaded saved blocks.');
@@ -124,7 +124,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
       await api.setSavedBlocks(collectedBlocks);
       const refreshed = normalizeSavedBlocks(await api.getSavedBlocks());
       setLastLoaded(refreshed);
-      setSummaryChunksText(refreshed.summary.join('\n'));
+      setSummaryText(refreshed.summary.join('\n'));
       setPreconditionsText(refreshed.preconditions.join('\n'));
       setStepsText(refreshed.steps.join('\n'));
       setMessage('Saved and reloaded saved blocks.');
@@ -140,7 +140,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
     setMessage(null);
     setError(null);
     setLastLoaded(null);
-    setSummaryChunksText('');
+    setSummaryText('');
     setPreconditionsText('');
     setStepsText('');
   }, []);
@@ -157,11 +157,11 @@ export const ApiPlayground: React.FunctionComponent = () => {
     <div className="apiPlayground">
       <div className="form">
         <label className="field">
-          <div className="fieldLabel">Summary chunks</div>
+          <div className="fieldLabel">Summary</div>
           <textarea
             className="fieldInput"
-            value={summaryChunksText}
-            onChange={e => setSummaryChunksText(e.target.value)}
+            value={summaryText}
+            onChange={e => setSummaryText(e.target.value)}
             rows={3}
           />
         </label>

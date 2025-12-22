@@ -16,7 +16,7 @@ import {appendSummaryChunk} from '../utils/summary-row-utils.ts';
 import {PreconditionsRow} from './preconditions-row.tsx';
 import {SavedBlocksPanel, type SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {StepItem, StepsConstructor, STEPS_DROP_ID} from './steps-constructor.tsx';
-import {createId} from '../id.ts';
+import {createId} from '../tools/id.ts';
 import {normalizeSavedBlocks} from '../utils/saved-blocks-utils.ts';
 import {FieldComponent} from './field-component.tsx';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
