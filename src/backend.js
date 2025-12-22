@@ -70,7 +70,7 @@ exports.httpHandler = {
               });
               return;
             }
-          } catch (e) {
+          } catch {
             ctx.response.json({
               error: 'Failed to parse saved blocks from storage.'
             });

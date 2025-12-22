@@ -2,6 +2,9 @@ import React, {useCallback, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDroppable} from '@dnd-kit/core';
 
+import {IssueDropzone, IssueField} from './issue-field.tsx';
+import {createId} from './id.ts';
+
 export const STEPS_DROP_ID = 'issue-drop-steps';
 
 export interface StepItem {
@@ -30,7 +33,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
     if (!value) {
       return;
     }
-    onChangeSteps([...steps, {id: createId(), text: value}]);
+    onChangeSteps([...steps, {id: createId('step'), text: value}]);
     setNewStep('');
   }, [newStep, onChangeSteps, steps]);
 
@@ -69,6 +72,42 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
     [onChangeSteps, steps]
   );
 
+  const onMoveUpClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const raw = (e.currentTarget as HTMLElement).dataset.index;
+      const idx = raw ? Number(raw) : NaN;
+      if (!Number.isFinite(idx)) {
+        return;
+      }
+      moveUp(idx);
+    },
+    [moveUp]
+  );
+
+  const onMoveDownClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const raw = (e.currentTarget as HTMLElement).dataset.index;
+      const idx = raw ? Number(raw) : NaN;
+      if (!Number.isFinite(idx)) {
+        return;
+      }
+      moveDown(idx);
+    },
+    [moveDown]
+  );
+
+  const onRemoveClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const raw = (e.currentTarget as HTMLElement).dataset.index;
+      const idx = raw ? Number(raw) : NaN;
+      if (!Number.isFinite(idx)) {
+        return;
+      }
+      remove(idx);
+    },
+    [remove]
+  );
+
   const emptyHint = useMemo(() => {
     return dropEnabled
       ? 'Drag blocks from the Steps tab here, or add one above.'
@@ -76,53 +115,47 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
   }, [dropEnabled]);
 
   return (
-    <div ref={setNodeRef} className={isOver ? 'issueField issueStepsDropzone issueStepsDropzoneActive' : 'issueField issueStepsDropzone'}>
-      <div className="issueFieldLabel">Steps to reproduce</div>
+    <IssueField label="Steps to reproduce">
+      <IssueDropzone isOver={isOver} setNodeRef={setNodeRef} className="issueDropzonePadded">
+        <div className="constructorAddRow">
+          <textarea
+            id="issue-new-step"
+            className="fieldInput"
+            placeholder="Describe a step…"
+            value={newStep}
+            onChange={e => setNewStep(e.target.value)}
+            rows={2}
+          />
+          <Button primary onClick={addStep} disabled={!canAdd}>
+            Add
+          </Button>
+        </div>
 
-      <div className="constructorAddRow">
-        <textarea
-          className="fieldInput"
-          placeholder="Describe a step…"
-          value={newStep}
-          onChange={e => setNewStep(e.target.value)}
-          rows={2}
-        />
-        <Button primary onClick={addStep} disabled={!canAdd}>
-          Add
-        </Button>
-      </div>
-
-      <div className={isOver ? 'dropList dropListActive issueStepsDropList' : 'dropList issueStepsDropList'}>
-        {steps.length ? (
-          <ol className="itemsList">
-            {steps.map((s, idx) => (
-              <li key={s.id} className="itemsListItem">
-                <span className="itemsListText">{s.text}</span>
-                <div className="itemsListActions">
-                  <Button inline disabled={idx === 0} onClick={() => moveUp(idx)}>
-                    Up
-                  </Button>
-                  <Button inline disabled={idx >= steps.length - 1} onClick={() => moveDown(idx)}>
-                    Down
-                  </Button>
-                  <Button inline onClick={() => remove(idx)}>
-                    Remove
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <div className="emptyHint">{emptyHint}</div>
-        )}
-      </div>
-    </div>
+        <div className={isOver ? 'dropList dropListActive issueStepsDropList' : 'dropList issueStepsDropList'}>
+          {steps.length ? (
+            <ol className="itemsList">
+              {steps.map((s, idx) => (
+                <li key={s.id} className="itemsListItem">
+                  <span className="itemsListText">{s.text}</span>
+                  <div className="itemsListActions">
+                    <Button inline disabled={idx === 0} data-index={idx} onClick={onMoveUpClick}>
+                      Up
+                    </Button>
+                    <Button inline disabled={idx >= steps.length - 1} data-index={idx} onClick={onMoveDownClick}>
+                      Down
+                    </Button>
+                    <Button inline data-index={idx} onClick={onRemoveClick}>
+                      Remove
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="emptyHint">{emptyHint}</div>
+          )}
+        </div>
+      </IssueDropzone>
+    </IssueField>
   );
 };
-
-function createId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `step_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}

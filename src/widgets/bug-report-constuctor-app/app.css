@@ -124,18 +124,6 @@
   font-weight: 600;
 }
 
-.issueStepsDropzone {
-  /* Make the drop target easier to hit: the whole Steps section accepts drops. */
-  border: 1px dashed rgba(0, 0, 0, 0.18);
-  border-radius: var(--ring-unit);
-  padding: calc(var(--ring-unit) * 1);
-}
-
-.issueStepsDropzoneActive {
-  border-color: rgba(0, 110, 255, 0.65);
-  background: rgba(0, 110, 255, 0.06);
-}
-
 .issueStepsDropList {
   min-height: calc(var(--ring-unit) * 10);
 }
@@ -144,6 +132,10 @@
   border: 1px dashed rgba(0, 0, 0, 0.18);
   border-radius: var(--ring-unit);
   padding: calc(var(--ring-unit) / 2);
+}
+
+.issueDropzonePadded {
+  padding: calc(var(--ring-unit) * 1);
 }
 
 .issueDropzoneActive {

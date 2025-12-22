@@ -1,25 +1,37 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {API} from './api.ts';
-import {LegacySavedBlocks, SavedBlocks} from './types.ts';
+import {SavedBlocks} from './types.ts';
+import {normalizeSavedBlocks} from './saved-blocks-normalize.ts';
+import {computeIsBusy, computeLoadSaveTitles, computeStatus} from './ui-state.ts';
 
+const JSON_PRETTY_SPACES = 2;
 
-function normalizeBlocks(value: SavedBlocks | LegacySavedBlocks | null | undefined): SavedBlocks {
-  if (value && typeof value === 'object' && Array.isArray((value as SavedBlocks).summary)) {
-    const v = value as SavedBlocks;
-    return {
-      summary: Array.isArray(v.summary) ? v.summary : [],
-      preconditions: Array.isArray(v.preconditions) ? v.preconditions : [],
-      steps: Array.isArray(v.steps) ? v.steps : []
-    };
-  }
-
-  const legacy = value as LegacySavedBlocks | null | undefined;
-  return {
-    summary: Array.isArray(legacy?.summaryChunks) ? legacy.summaryChunks : [],
-    preconditions: legacy?.preconditions?.trim() ? [legacy.preconditions] : [],
-    steps: Array.isArray(legacy?.steps) ? legacy.steps : []
-  };
+function buildUiState(params: {
+  api: API | null;
+  loading: boolean;
+  saving: boolean;
+  message: string | null;
+  error: string | null;
+}): {
+  isBusy: boolean;
+  canCallApi: boolean;
+  loadTitle: string;
+  saveTitle: string;
+  showStatus: boolean;
+  statusClassName: string;
+  statusText: string | null;
+} {
+  const isBusy = computeIsBusy(params.loading, params.saving);
+  const canCallApi = !!params.api && !isBusy;
+  const titles = computeLoadSaveTitles({
+    loading: params.loading,
+    saving: params.saving,
+    loadIdleTitle: 'Load saved blocks',
+    saveIdleTitle: 'Save saved blocks'
+  });
+  const status = computeStatus({message: params.message, error: params.error});
+  return {isBusy, canCallApi, ...titles, ...status};
 }
 
 export const ApiPlayground: React.FunctionComponent = () => {
@@ -86,7 +98,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
     setError(null);
     setLoading(true);
     try {
-      const result = normalizeBlocks(await api.getSavedBlocks());
+      const result = normalizeSavedBlocks(await api.getSavedBlocks());
       setLastLoaded(result);
       setSummaryChunksText(result.summary.join('\n'));
       setPreconditionsText(result.preconditions.join('\n'));
@@ -110,7 +122,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
     setSaving(true);
     try {
       await api.setSavedBlocks(collectedBlocks);
-      const refreshed = normalizeBlocks(await api.getSavedBlocks());
+      const refreshed = normalizeSavedBlocks(await api.getSavedBlocks());
       setLastLoaded(refreshed);
       setSummaryChunksText(refreshed.summary.join('\n'));
       setPreconditionsText(refreshed.preconditions.join('\n'));
@@ -132,6 +144,14 @@ export const ApiPlayground: React.FunctionComponent = () => {
     setPreconditionsText('');
     setStepsText('');
   }, []);
+
+  const {isBusy, canCallApi, loadTitle, saveTitle, showStatus, statusClassName, statusText} = buildUiState({
+    api,
+    loading,
+    saving,
+    message,
+    error
+  });
 
   return (
     <div className="apiPlayground">
@@ -168,31 +188,27 @@ export const ApiPlayground: React.FunctionComponent = () => {
       </div>
 
       <div className="actions">
-        <Button primary disabled={!api || loading || saving} onClick={load}>
-          {loading ? 'Loading…' : 'Load saved blocks'}
+        <Button primary disabled={!canCallApi} onClick={load}>
+          {loadTitle}
         </Button>
-        <Button primary disabled={!api || loading || saving} onClick={save}>
-          {saving ? 'Saving…' : 'Save saved blocks'}
+        <Button primary disabled={!canCallApi} onClick={save}>
+          {saveTitle}
         </Button>
-        <Button disabled={loading || saving} onClick={resetForm}>
+        <Button disabled={isBusy} onClick={resetForm}>
           {'Reset form'}
         </Button>
       </div>
 
-      {(message || error) && (
-        <div className={error ? 'status statusError' : 'status statusOk'}>
-          {error ?? message}
-        </div>
-      )}
+      {showStatus ? <div className={statusClassName}>{statusText}</div> : null}
 
       <div className="preview">
         <div className="previewTitle">Payload to save</div>
-        <pre className="previewBody">{JSON.stringify(collectedBlocks, null, 2)}</pre>
+        <pre className="previewBody">{JSON.stringify(collectedBlocks, null, JSON_PRETTY_SPACES)}</pre>
       </div>
 
       <div className="preview">
         <div className="previewTitle">Last loaded from backend</div>
-        <pre className="previewBody">{JSON.stringify(lastLoaded, null, 2)}</pre>
+        <pre className="previewBody">{JSON.stringify(lastLoaded, null, JSON_PRETTY_SPACES)}</pre>
       </div>
     </div>
   );

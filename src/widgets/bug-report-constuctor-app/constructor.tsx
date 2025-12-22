@@ -11,10 +11,13 @@ import {
 
 import {API} from './api.ts';
 import type {SavedBlocks} from './types.ts';
-import {appendSummaryChunk, IssueSummaryRow} from './issue-summary-row.tsx';
+import {IssueSummaryRow} from './issue-summary-row.tsx';
+import {appendSummaryChunk} from './issue-summary-utils.ts';
 import {PreconditionsRow} from './preconditions-row.tsx';
 import {SavedBlocksPanel, type SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {StepItem, StepsConstructor, STEPS_DROP_ID} from './steps-constructor.tsx';
+import {createId} from './id.ts';
+import {normalizeSavedBlocks} from './saved-blocks-normalize.ts';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -38,6 +41,10 @@ export const Constructor: React.FC = () => {
 
   const summaryInsertRef = useRef<((text: string) => void) | null>(null);
 
+  const onRegisterSummaryInsert = useCallback((fn: ((text: string) => void) | null) => {
+    summaryInsertRef.current = fn;
+  }, []);
+
   const [preconditions, setPreconditions] = useState('');
   const [steps, setSteps] = useState<StepItem[]>([]);
 
@@ -52,14 +59,6 @@ export const Constructor: React.FC = () => {
     })();
     return () => {
       disposed = true;
-    };
-  }, []);
-
-  const normalizeSavedBlocks = useCallback((value: SavedBlocks | null | undefined): SavedBlocks => {
-    return {
-      summary: Array.isArray(value?.summary) ? value.summary : [],
-      preconditions: Array.isArray(value?.preconditions) ? value.preconditions : [],
-      steps: Array.isArray(value?.steps) ? value.steps : []
     };
   }, []);
 
@@ -81,7 +80,7 @@ export const Constructor: React.FC = () => {
     } finally {
       setBlocksLoading(false);
     }
-  }, [api, normalizeSavedBlocks]);
+  }, [api]);
 
   const saveSavedBlocks = useCallback(async () => {
     if (!api) {
@@ -102,7 +101,7 @@ export const Constructor: React.FC = () => {
     } finally {
       setBlocksSaving(false);
     }
-  }, [api, normalizeSavedBlocks, savedBlocks]);
+  }, [api, savedBlocks]);
 
   const insertSummaryChunk = useCallback((text: string) => {
     if (summaryInsertRef.current) {
@@ -114,6 +113,10 @@ export const Constructor: React.FC = () => {
 
   const preconditionsInsertRef = useRef<((text: string) => void) | null>(null);
 
+  const onRegisterPreconditionsInsert = useCallback((fn: ((text: string) => void) | null) => {
+    preconditionsInsertRef.current = fn;
+  }, []);
+
   const insertPreconditions = useCallback((text: string) => {
     preconditionsInsertRef.current?.(text);
   }, []);
@@ -123,7 +126,7 @@ export const Constructor: React.FC = () => {
     if (!clean) {
       return;
     }
-    setSteps(prev => [...prev, {id: createId(), text: clean}]);
+    setSteps(prev => [...prev, {id: createId('issue'), text: clean}]);
   }, []);
 
   const stepsDropEnabled = activeDrag?.tab === 'steps';
@@ -143,22 +146,23 @@ export const Constructor: React.FC = () => {
     }
   }, []);
 
-  const onDragEnd = useCallback((event: DragEndEvent) => {
+  const getDropPayload = useCallback((event: DragEndEvent) => {
     const overId = event.over?.id;
     const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
-    const text = data?.text;
-    const tab = data?.tab;
+    if (!overId || !data?.tab || !data.text) {
+      return null;
+    }
+    return {overId, tab: data.tab, text: data.text};
+  }, []);
 
+  const onDragEnd = useCallback((event: DragEndEvent) => {
     setActiveDrag(null);
 
-    if (!overId || !text || !tab) {
-      return;
+    const payload = getDropPayload(event);
+    if (payload?.overId === STEPS_DROP_ID && payload.tab === 'steps') {
+      setSteps(prev => [...prev, {id: createId('issue'), text: payload.text}]);
     }
-
-    if (overId === STEPS_DROP_ID && tab === 'steps') {
-      setSteps(prev => [...prev, {id: createId(), text}]);
-    }
-  }, []);
+  }, [getDropPayload]);
 
   const onDragCancel = useCallback(() => {
     setActiveDrag(null);
@@ -172,19 +176,14 @@ export const Constructor: React.FC = () => {
             <IssueSummaryRow
               value={summary}
               onValueChange={setSummary}
-              onRegisterInsertAtCursor={fn => {
-                summaryInsertRef.current = fn;
-              }}
+              onRegisterInsertAtCursor={onRegisterSummaryInsert}
             />
 
             <PreconditionsRow
               dropEnabled={activeDrag?.tab === 'preconditions'}
               value={preconditions}
               onValueChange={setPreconditions}
-              onRegisterInsertAtCursor={fn => {
-                preconditionsInsertRef.current = fn;
-              }}
-              rows={5}
+              onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
             />
 
             <StepsConstructor steps={steps} onChangeSteps={setSteps} dropEnabled={stepsDropEnabled}/>
@@ -218,10 +217,3 @@ export const Constructor: React.FC = () => {
     </DndContext>
   );
 };
-
-function createId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `issue_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}

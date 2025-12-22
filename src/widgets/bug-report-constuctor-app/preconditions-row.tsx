@@ -2,6 +2,8 @@ import React, {useCallback, useEffect, useRef} from 'react';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
+import {IssueDropzone, IssueField} from './issue-field.tsx';
+import {getSelectionFromElement, insertTextAtSelection} from './text-insert.ts';
 
 export type PreconditionsRowProps = {
   dropEnabled: boolean;
@@ -10,6 +12,8 @@ export type PreconditionsRowProps = {
   rows?: number;
   onRegisterInsertAtCursor?: (fn: ((text: string) => void) | null) => void;
 };
+
+const DEFAULT_ROWS = 5;
 
 export const PRECONDITIONS_DROP_ID = 'issue-drop-preconditions';
 
@@ -33,7 +37,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   value,
   onValueChange,
   onRegisterInsertAtCursor,
-  rows = 5
+  rows = DEFAULT_ROWS
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const selectionRef = useRef<{start: number; end: number}>({start: 0, end: 0});
@@ -66,24 +70,17 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
 
       const currentValue = el.value;
       const isFocused = document.activeElement === el;
-      const last = selectionRef.current;
-
-      const rawStart = isFocused ? (el.selectionStart ?? currentValue.length) : (last?.start ?? currentValue.length);
-      const rawEnd = isFocused ? (el.selectionEnd ?? currentValue.length) : (last?.end ?? currentValue.length);
-      const start = Math.max(0, Math.min(currentValue.length, rawStart));
-      const end = Math.max(0, Math.min(currentValue.length, rawEnd));
-      const before = currentValue.slice(0, start);
-      const after = currentValue.slice(end);
-
+      const fallback = selectionRef.current;
+      const selection = isFocused ? getSelectionFromElement(el, fallback) : fallback;
+      const before = currentValue.slice(0, selection.start);
       const needsLeadingNewline = !!before.trim() && !before.endsWith('\n');
       const insert = needsLeadingNewline ? `\n${insertRaw}` : insertRaw;
-      const next = `${before}${insert}${after}`;
 
+      const {next, caret} = insertTextAtSelection(currentValue, selection, insert);
       onValueChange(next);
 
       requestAnimationFrame(() => {
         el.focus();
-        const caret = start + insert.length;
         el.setSelectionRange(caret, caret);
         selectionRef.current = {start: caret, end: caret};
       });
@@ -115,14 +112,8 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   });
 
   return (
-    <div className="issueField">
-      <label className="issueFieldLabel" htmlFor="issue-preconditions">
-        Preconditions
-      </label>
-      <div
-        ref={setNodeRef}
-        className={isOver ? 'issueDropzone issueDropzoneActive' : 'issueDropzone'}
-      >
+    <IssueField label="Preconditions" htmlFor="issue-preconditions">
+      <IssueDropzone isOver={isOver} setNodeRef={setNodeRef}>
         <textarea
           id="issue-preconditions"
           ref={textareaRef}
@@ -136,7 +127,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
           onMouseUp={onSelect}
           rows={rows}
         />
-      </div>
-    </div>
+      </IssueDropzone>
+    </IssueField>
   );
 };

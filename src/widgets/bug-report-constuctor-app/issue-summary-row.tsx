@@ -1,25 +1,24 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {EditableHeading, Levels, Size} from '@jetbrains/ring-ui-built/components/editable-heading/editable-heading';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
+import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from './issue-summary-utils.ts';
+import {getSelectionFromElement, insertTextAtSelection} from './text-insert.ts';
 
 const SUMMARY_AUTOSAVE_MS = 650;
 
-export const SUMMARY_DROP_ID = 'issue-drop-summary';
-
-function normalizeSingleLine(text: string): string {
-  return text.replace(/[\r\n]+/g, ' ').trim();
-}
-
-export function appendSummaryChunk(prev: string, text: string): string {
-  const chunk = normalizeSingleLine(text);
-  if (!chunk) {
-    return prev;
+function isInputLikeTarget(el: HTMLElement | null): boolean {
+  if (!el) {
+    return false;
   }
-  const base = prev.trim();
-  return base ? `${base} ${chunk}` : chunk;
+  const tag = el.tagName?.toLowerCase();
+  return (
+    tag === 'input' ||
+    tag === 'textarea' ||
+    // Some Ring UI controls might use contenteditable.
+    el.getAttribute('contenteditable') === 'true'
+  );
 }
 
 export type IssueSummaryRowProps = {
@@ -57,6 +56,23 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
     };
   }, []);
 
+  const resetDragState = useCallback(() => {
+    draggingSummaryChunkRef.current = false;
+    dragSelectionRef.current = null;
+  }, []);
+
+  const restoreFrozenSelection = useCallback(() => {
+    const el = inputRef.current;
+    const frozen = dragSelectionRef.current;
+    if (!el || !frozen) {
+      return;
+    }
+    el.focus?.();
+    const {start, end} = getSelectionFromElement(el, frozen);
+    el.setSelectionRange?.(start, end);
+    selectionRef.current = {start, end};
+  }, []);
+
   useEffect(() => {
     const onSelectionChange = () => {
       const el = inputRef.current;
@@ -85,9 +101,8 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
   }, [captureSelection, isEditing]);
 
   const insertAtCursor = useCallback(
-    // eslint-disable-next-line complexity
     (text: string) => {
-      const clean = normalizeSingleLine(text);
+      const clean = normalizeSummaryInsert(text);
       if (!clean) {
         return;
       }
@@ -100,21 +115,14 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
 
       const current = el.value;
       const isFocused = document.activeElement === el;
-      const last = selectionRef.current;
+      const fallback = selectionRef.current;
+      const selection = isFocused ? getSelectionFromElement(el, fallback) : fallback;
 
-      const rawStart = isFocused ? (el.selectionStart ?? current.length) : (last?.start ?? current.length);
-      const rawEnd = isFocused ? (el.selectionEnd ?? current.length) : (last?.end ?? current.length);
-      const start = Math.max(0, Math.min(current.length, rawStart));
-      const end = Math.max(0, Math.min(current.length, rawEnd));
-      const before = current.slice(0, start);
-      const after = current.slice(end);
-
-      const next = `${before}${clean}${after}`;
+      const {next, caret} = insertTextAtSelection(current, selection, clean);
       onValueChange(next);
 
       requestAnimationFrame(() => {
         el.focus?.();
-        const caret = start + clean.length;
         el.setSelectionRange?.(caret, caret);
         selectionRef.current = {start: caret, end: caret};
       });
@@ -132,6 +140,51 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
       insertAtCursor(text);
     },
     [insertAtCursor, isEditing, onValueChange, value]
+  );
+
+  const onDragEnd = useCallback(
+    (event: {over?: {id?: unknown} | null; active: {data: {current: unknown}}}) => {
+      const overId = event.over?.id;
+      if (overId !== SUMMARY_DROP_ID) {
+        resetDragState();
+        return;
+      }
+
+      const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
+      if (data?.tab !== 'summary' || !data.text) {
+        resetDragState();
+        return;
+      }
+
+      if (!isEditing) {
+        onValueChange(appendSummaryChunk(value, data.text));
+        resetDragState();
+        return;
+      }
+
+      // Restore the frozen caret before inserting, so insertion is stable even if focus/selection
+      // changed during DnD.
+      restoreFrozenSelection();
+      insertAtCursor(data.text);
+      resetDragState();
+    },
+    [insertAtCursor, isEditing, onValueChange, resetDragState, restoreFrozenSelection, value]
+  );
+
+  const onBlur = useCallback(
+    (e: React.FocusEvent<HTMLElement>) => {
+      if (draggingSummaryChunkRef.current) {
+        return;
+      }
+
+      // Keep Summary editing until focus moves to another input field.
+      // Clicking non-focusable UI (e.g., panel backgrounds) should not end editing.
+      const next = (e.relatedTarget ?? null) as HTMLElement | null;
+      if (isInputLikeTarget(next)) {
+        setIsEditing(false);
+      }
+    },
+    []
   );
 
   useEffect(() => {
@@ -165,46 +218,9 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
         });
       }
     },
-    // eslint-disable-next-line complexity
-    onDragEnd: event => {
-      const overId = event.over?.id;
-      if (overId !== SUMMARY_DROP_ID) {
-        draggingSummaryChunkRef.current = false;
-        dragSelectionRef.current = null;
-        return;
-      }
-      const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
-      if (data?.tab !== 'summary' || !data.text) {
-        draggingSummaryChunkRef.current = false;
-        dragSelectionRef.current = null;
-        return;
-      }
-
-      if (!isEditing) {
-        onValueChange(appendSummaryChunk(value, data.text));
-        draggingSummaryChunkRef.current = false;
-        dragSelectionRef.current = null;
-        return;
-      }
-
-      // Restore the frozen caret before inserting, so insertion is stable even if focus/selection
-      // changed during DnD.
-      const el = inputRef.current;
-      const frozen = dragSelectionRef.current;
-      if (el && frozen) {
-        el.focus?.();
-        const start = Math.max(0, Math.min(el.value.length, frozen.start));
-        const end = Math.max(0, Math.min(el.value.length, frozen.end));
-        el.setSelectionRange?.(start, end);
-        selectionRef.current = {start, end};
-      }
-      insertAtCursor(data.text);
-      draggingSummaryChunkRef.current = false;
-      dragSelectionRef.current = null;
-    },
+    onDragEnd,
     onDragCancel: () => {
-      draggingSummaryChunkRef.current = false;
-      dragSelectionRef.current = null;
+      resetDragState();
     }
   });
 
@@ -239,30 +255,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
         embedded
         isEditing={isEditing}
         onEdit={() => setIsEditing(true)}
-        // eslint-disable-next-line complexity
-        onBlur={e => {
-          if (draggingSummaryChunkRef.current) {
-            return;
-          }
-
-          // Keep Summary editing until focus moves to another input field.
-          // Clicking non-focusable UI (e.g., panel backgrounds) should not end editing.
-          const next = (e.relatedTarget ?? null) as HTMLElement | null;
-          if (!next) {
-            return;
-          }
-
-          const tag = next.tagName?.toLowerCase();
-          const isInputLike =
-            tag === 'input' ||
-            tag === 'textarea' ||
-            // Some Ring UI controls might use contenteditable.
-            next.getAttribute('contenteditable') === 'true';
-
-          if (isInputLike) {
-            setIsEditing(false);
-          }
-        }}
+        onBlur={onBlur}
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault();
@@ -277,7 +270,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
         }}
         onPaste={e => {
           const pasted = e.clipboardData.getData('text/plain');
-          const clean = normalizeSingleLine(pasted);
+          const clean = normalizeSummaryInsert(pasted);
           if (!clean) {
             return;
           }
@@ -286,15 +279,11 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
           const el = e.target as HTMLInputElement | HTMLTextAreaElement;
           inputRef.current = el;
           const current = el.value;
-          const start = el.selectionStart ?? current.length;
-          const end = el.selectionEnd ?? current.length;
-          const before = current.slice(0, start);
-          const after = current.slice(end);
-          const next = `${before}${clean}${after}`;
+          const selection = getSelectionFromElement(el, selectionRef.current);
+          const {next, caret} = insertTextAtSelection(current, selection, clean);
           onValueChange(next);
 
           requestAnimationFrame(() => {
-            const caret = start + clean.length;
             el.setSelectionRange?.(caret, caret);
             selectionRef.current = {start: caret, end: caret};
           });

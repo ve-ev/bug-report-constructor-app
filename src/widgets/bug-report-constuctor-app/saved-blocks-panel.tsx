@@ -1,8 +1,9 @@
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDraggable} from '@dnd-kit/core';
 
 import type {SavedBlocks} from './types.ts';
+import {computeIsBusy, computeLoadSaveTitles, computeStatus} from './ui-state.ts';
 
 export type SavedBlocksTab = keyof SavedBlocks;
 
@@ -12,6 +13,12 @@ interface DraggableBlockProps {
   index: number;
   onClick?: (text: string) => void;
   onRemove?: () => void;
+}
+
+const DRAGGING_OPACITY = 0.65;
+
+function computeCanAdd(params: {newBlockText: string; isBusy: boolean}): boolean {
+  return !!params.newBlockText.trim() && !params.isBusy;
 }
 
 const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClick, onRemove}) => {
@@ -26,7 +33,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
 
   const style: React.CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    opacity: isDragging ? 0.65 : 1
+    opacity: isDragging ? DRAGGING_OPACITY : 1
   };
 
   if (tab === 'summary') {
@@ -127,7 +134,35 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
 
   const activeList = useMemo(() => blocks[activeTab], [activeTab, blocks]);
 
-  const addBlock = () => {
+  const insertByTab = useMemo(() => {
+    return {
+      summary: onClickInsertSummary,
+      preconditions: onClickInsertPreconditions,
+      steps: onClickInsertStep
+    } satisfies Record<SavedBlocksTab, (text: string) => void>;
+  }, [onClickInsertPreconditions, onClickInsertStep, onClickInsertSummary]);
+
+  const onInsert = insertByTab[activeTab];
+
+  const blockItems = useMemo(() => {
+    return activeList.map((text, index) => ({
+      id: `${activeTab}:${index}:${text}`,
+      text,
+      index
+    }));
+  }, [activeList, activeTab]);
+
+  const isBusy = computeIsBusy(loading, saving);
+  const canAdd = computeCanAdd({newBlockText, isBusy});
+  const {loadTitle, saveTitle} = computeLoadSaveTitles({
+    loading,
+    saving,
+    loadIdleTitle: 'Load',
+    saveIdleTitle: 'Save'
+  });
+  const {showStatus, statusClassName, statusText} = computeStatus({message, error});
+
+  const addBlock = useCallback(() => {
     const value = newBlockText.trim();
     if (!value) {
       return;
@@ -135,11 +170,29 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
 
     onChangeBlocks({...blocks, [activeTab]: [...activeList, value]});
     setNewBlockText('');
-  };
+  }, [activeList, activeTab, blocks, newBlockText, onChangeBlocks]);
 
-  const removeAt = (index: number) => {
-    onChangeBlocks({...blocks, [activeTab]: activeList.filter((_, i) => i !== index)});
-  };
+  const removeAt = useCallback(
+    (index: number) => {
+      onChangeBlocks({...blocks, [activeTab]: activeList.filter((_, i) => i !== index)});
+    },
+    [activeList, activeTab, blocks, onChangeBlocks]
+  );
+
+  const onTabClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const raw = (e.currentTarget as HTMLElement).dataset.tab;
+      if (!raw) {
+        return;
+      }
+      onChangeTab(raw as SavedBlocksTab);
+    },
+    [onChangeTab]
+  );
+
+  const onChangeNewBlockText = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewBlockText(e.target.value);
+  }, []);
 
   const tabButtons: Array<{id: SavedBlocksTab; label: string}> = [
     {id: 'summary', label: 'Summary'},
@@ -156,8 +209,9 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
             <Button
               key={t.id}
               primary={t.id === activeTab}
-              onClick={() => onChangeTab(t.id)}
-              disabled={loading || saving}
+              data-tab={t.id}
+              onClick={onTabClick}
+              disabled={isBusy}
             >
               {t.label}
             </Button>
@@ -168,20 +222,14 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
       <div className="sidePanelBody">
         <div className="savedBlocksList">
           {activeList.length ? (
-            activeList.map((text, index) => (
+            blockItems.map(item => (
               <DraggableBlock
-                key={`${activeTab}-${index}-${text}`}
+                key={item.id}
                 tab={activeTab}
-                text={text}
-                index={index}
-                onClick={
-                  activeTab === 'summary'
-                    ? onClickInsertSummary
-                    : activeTab === 'preconditions'
-                      ? onClickInsertPreconditions
-                      : onClickInsertStep
-                }
-                onRemove={() => removeAt(index)}
+                text={item.text}
+                index={item.index}
+                onClick={onInsert}
+                onRemove={() => removeAt(item.index)}
               />
             ))
           ) : (
@@ -193,28 +241,24 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
           <input
             className="fieldInput"
             value={newBlockText}
-            onChange={e => setNewBlockText(e.target.value)}
+            onChange={onChangeNewBlockText}
             placeholder="New block…"
           />
-          <Button primary onClick={addBlock} disabled={loading || saving || !newBlockText.trim()}>
+          <Button primary onClick={addBlock} disabled={!canAdd}>
             Add
           </Button>
         </div>
 
         <div className="actions">
-          <Button primary disabled={loading || saving} onClick={onLoad}>
-            {loading ? 'Loading…' : 'Load'}
+          <Button primary disabled={isBusy} onClick={onLoad}>
+            {loadTitle}
           </Button>
-          <Button primary disabled={loading || saving} onClick={onSave}>
-            {saving ? 'Saving…' : 'Save'}
+          <Button primary disabled={isBusy} onClick={onSave}>
+            {saveTitle}
           </Button>
         </div>
 
-        {(message || error) && (
-          <div className={error ? 'status statusError' : 'status statusOk'}>
-            {error ?? message}
-          </div>
-        )}
+        {showStatus ? <div className={statusClassName}>{statusText}</div> : null}
       </div>
     </div>
   );
