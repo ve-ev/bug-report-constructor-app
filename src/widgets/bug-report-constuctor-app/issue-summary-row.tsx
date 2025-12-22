@@ -85,6 +85,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
   }, [captureSelection, isEditing]);
 
   const insertAtCursor = useCallback(
+    // eslint-disable-next-line complexity
     (text: string) => {
       const clean = normalizeSingleLine(text);
       if (!clean) {
@@ -121,9 +122,21 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
     [onValueChange, value]
   );
 
+  const insertSummaryChunk = useCallback(
+    (text: string) => {
+      if (!isEditing) {
+        onValueChange(appendSummaryChunk(value, text));
+        return;
+      }
+
+      insertAtCursor(text);
+    },
+    [insertAtCursor, isEditing, onValueChange, value]
+  );
+
   useEffect(() => {
-    onRegisterInsertAtCursor?.(insertAtCursor);
-  }, [insertAtCursor, onRegisterInsertAtCursor]);
+    onRegisterInsertAtCursor?.(insertSummaryChunk);
+  }, [insertSummaryChunk, onRegisterInsertAtCursor]);
 
   useDndMonitor({
     onDragStart: event => {
@@ -152,6 +165,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
         });
       }
     },
+    // eslint-disable-next-line complexity
     onDragEnd: event => {
       const overId = event.over?.id;
       if (overId !== SUMMARY_DROP_ID) {
@@ -161,6 +175,13 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
       }
       const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
       if (data?.tab !== 'summary' || !data.text) {
+        draggingSummaryChunkRef.current = false;
+        dragSelectionRef.current = null;
+        return;
+      }
+
+      if (!isEditing) {
+        onValueChange(appendSummaryChunk(value, data.text));
         draggingSummaryChunkRef.current = false;
         dragSelectionRef.current = null;
         return;
@@ -218,6 +239,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
         embedded
         isEditing={isEditing}
         onEdit={() => setIsEditing(true)}
+        // eslint-disable-next-line complexity
         onBlur={e => {
           if (draggingSummaryChunkRef.current) {
             return;
