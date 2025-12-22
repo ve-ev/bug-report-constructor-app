@@ -4,14 +4,23 @@ function getExtensionProperties(ctx) {
 
 function defaultSavedBlocks() {
   return {
-    summaryChunks: [],
-    preconditions: '',
-    steps: [],
-    additionalInfo: ''
+    summary: [],
+    preconditions: [],
+    steps: []
   };
 }
 
-function isSavedBlocks(value) {
+function isSavedBlocksV2(value) {
+  return (
+    value &&
+    typeof value === 'object' &&
+    Array.isArray(value.summary) &&
+    Array.isArray(value.preconditions) &&
+    Array.isArray(value.steps)
+  );
+}
+
+function isSavedBlocksV1(value) {
   return (
     value &&
     typeof value === 'object' &&
@@ -20,6 +29,22 @@ function isSavedBlocks(value) {
     Array.isArray(value.steps) &&
     typeof value.additionalInfo === 'string'
   );
+}
+
+function normalizeSavedBlocks(value) {
+  if (isSavedBlocksV2(value)) {
+    return value;
+  }
+
+  if (isSavedBlocksV1(value)) {
+    return {
+      summary: value.summaryChunks,
+      preconditions: value.preconditions.trim() ? [value.preconditions] : [],
+      steps: value.steps
+    };
+  }
+
+  return null;
 }
 
 exports.httpHandler = {
@@ -36,8 +61,9 @@ exports.httpHandler = {
         } else {
           try {
             const parsed = JSON.parse(props.savedBlocks);
-            if (isSavedBlocks(parsed)) {
-              result = parsed;
+            const normalized = normalizeSavedBlocks(parsed);
+            if (normalized) {
+              result = normalized;
             } else {
               ctx.response.json({
                 error: 'Saved blocks data has an unexpected format.'
@@ -62,7 +88,9 @@ exports.httpHandler = {
         const payload = ctx.request.json();
         const props = getExtensionProperties(ctx);
 
-        if (!isSavedBlocks(payload)) {
+        const normalized = normalizeSavedBlocks(payload);
+
+        if (!normalized) {
           ctx.response.json({
             error: 'Invalid payload for saved blocks.'
           });
@@ -70,10 +98,10 @@ exports.httpHandler = {
         }
 
         if (props) {
-          props.savedBlocks = JSON.stringify(payload);
+          props.savedBlocks = JSON.stringify(normalized);
         }
 
-        ctx.response.json(JSON.parse(props.savedBlocks));
+        ctx.response.json(normalized);
       }
     }
   ]

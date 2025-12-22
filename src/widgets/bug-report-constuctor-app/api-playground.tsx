@@ -1,21 +1,24 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {API} from './api.ts';
-import {SavedBlocks} from './types.ts';
+import {LegacySavedBlocks, SavedBlocks} from './types.ts';
 
-const DEFAULT_BLOCKS: SavedBlocks = {
-  summaryChunks: [],
-  preconditions: '',
-  steps: [],
-  additionalInfo: ''
-};
 
-function normalizeBlocks(value: SavedBlocks | null | undefined): SavedBlocks {
+function normalizeBlocks(value: SavedBlocks | LegacySavedBlocks | null | undefined): SavedBlocks {
+  if (value && typeof value === 'object' && Array.isArray((value as SavedBlocks).summary)) {
+    const v = value as SavedBlocks;
+    return {
+      summary: Array.isArray(v.summary) ? v.summary : [],
+      preconditions: Array.isArray(v.preconditions) ? v.preconditions : [],
+      steps: Array.isArray(v.steps) ? v.steps : []
+    };
+  }
+
+  const legacy = value as LegacySavedBlocks | null | undefined;
   return {
-    summaryChunks: Array.isArray(value?.summaryChunks) ? value.summaryChunks : [],
-    preconditions: value?.preconditions ?? '',
-    steps: Array.isArray(value?.steps) ? value.steps : [],
-    additionalInfo: value?.additionalInfo ?? ''
+    summary: Array.isArray(legacy?.summaryChunks) ? legacy.summaryChunks : [],
+    preconditions: legacy?.preconditions?.trim() ? [legacy.preconditions] : [],
+    steps: Array.isArray(legacy?.steps) ? legacy.steps : []
   };
 }
 
@@ -28,9 +31,8 @@ export const ApiPlayground: React.FunctionComponent = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   const [summaryChunksText, setSummaryChunksText] = useState('');
-  const [preconditions, setPreconditions] = useState('');
+  const [preconditionsText, setPreconditionsText] = useState('');
   const [stepsText, setStepsText] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
 
   const [lastLoaded, setLastLoaded] = useState<SavedBlocks | null>(null);
 
@@ -58,18 +60,22 @@ export const ApiPlayground: React.FunctionComponent = () => {
       .map(s => s.trim())
       .filter(Boolean);
 
+    const preconditions = preconditionsText
+      .split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
     const steps = stepsText
       .split(/\r?\n/)
       .map(s => s.trim())
       .filter(Boolean);
 
     return {
-      summaryChunks,
+      summary: summaryChunks,
       preconditions,
       steps,
-      additionalInfo
     };
-  }, [additionalInfo, preconditions, stepsText, summaryChunksText]);
+  }, [preconditionsText, stepsText, summaryChunksText]);
 
   const load = useCallback(async () => {
     if (!api) {
@@ -82,10 +88,9 @@ export const ApiPlayground: React.FunctionComponent = () => {
     try {
       const result = normalizeBlocks(await api.getSavedBlocks());
       setLastLoaded(result);
-      setSummaryChunksText(result.summaryChunks.join('\n'));
-      setPreconditions(result.preconditions);
+      setSummaryChunksText(result.summary.join('\n'));
+      setPreconditionsText(result.preconditions.join('\n'));
       setStepsText(result.steps.join('\n'));
-      setAdditionalInfo(result.additionalInfo);
       setMessage('Loaded saved blocks.');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -107,10 +112,9 @@ export const ApiPlayground: React.FunctionComponent = () => {
       await api.setSavedBlocks(collectedBlocks);
       const refreshed = normalizeBlocks(await api.getSavedBlocks());
       setLastLoaded(refreshed);
-      setSummaryChunksText(refreshed.summaryChunks.join('\n'));
-      setPreconditions(refreshed.preconditions);
+      setSummaryChunksText(refreshed.summary.join('\n'));
+      setPreconditionsText(refreshed.preconditions.join('\n'));
       setStepsText(refreshed.steps.join('\n'));
-      setAdditionalInfo(refreshed.additionalInfo);
       setMessage('Saved and reloaded saved blocks.');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -125,9 +129,8 @@ export const ApiPlayground: React.FunctionComponent = () => {
     setError(null);
     setLastLoaded(null);
     setSummaryChunksText('');
-    setPreconditions(DEFAULT_BLOCKS.preconditions);
+    setPreconditionsText('');
     setStepsText('');
-    setAdditionalInfo(DEFAULT_BLOCKS.additionalInfo);
   }, []);
 
   return (
@@ -147,8 +150,8 @@ export const ApiPlayground: React.FunctionComponent = () => {
           <div className="fieldLabel">Preconditions</div>
           <textarea
             className="fieldInput"
-            value={preconditions}
-            onChange={e => setPreconditions(e.target.value)}
+            value={preconditionsText}
+            onChange={e => setPreconditionsText(e.target.value)}
             rows={3}
           />
         </label>
@@ -160,16 +163,6 @@ export const ApiPlayground: React.FunctionComponent = () => {
             value={stepsText}
             onChange={e => setStepsText(e.target.value)}
             rows={6}
-          />
-        </label>
-
-        <label className="field">
-          <div className="fieldLabel">Additional info</div>
-          <textarea
-            className="fieldInput"
-            value={additionalInfo}
-            onChange={e => setAdditionalInfo(e.target.value)}
-            rows={3}
           />
         </label>
       </div>

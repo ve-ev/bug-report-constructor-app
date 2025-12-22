@@ -9,7 +9,7 @@
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
     "test": "echo 'no tests'",
     "pack": "rm -rf bug-report-constructor-app.zip && cd dist/ && bestzip ../bug-report-constructor-app.zip *",
-    "upload": "youtrack-app upload dist"
+    "upload": "npm run build && youtrack-app upload dist"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -26,6 +26,7 @@
     "@jetbrains/youtrack-apps-tools": "^0.0.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/node": "^22.10.0",
     "@vitejs/plugin-react": "^4.3.4",
     "bestzip": "^2.2.1",
     "eslint": "^9.13.0",

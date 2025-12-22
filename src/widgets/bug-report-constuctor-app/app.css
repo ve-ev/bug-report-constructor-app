@@ -87,3 +87,268 @@
   padding-top: calc(var(--ring-unit) * 2);
   border-top: 1px solid var(--ring-borders-color);
 }
+
+.constructorLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: calc(var(--ring-unit) * 2);
+  align-items: start;
+}
+
+.constructorMain {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 2);
+  min-width: 0;
+}
+
+.issueForm {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 2);
+}
+
+.issueSummaryRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.issueField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+}
+
+.issueFieldLabel {
+  font-weight: 600;
+}
+
+.issueStepsDropzone {
+  /* Make the drop target easier to hit: the whole Steps section accepts drops. */
+  border: 1px dashed rgba(0, 0, 0, 0.18);
+  border-radius: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 1);
+}
+
+.issueStepsDropzoneActive {
+  border-color: rgba(0, 110, 255, 0.65);
+  background: rgba(0, 110, 255, 0.06);
+}
+
+.issueStepsDropList {
+  min-height: calc(var(--ring-unit) * 10);
+}
+
+.issueDropzone {
+  border: 1px dashed rgba(0, 0, 0, 0.18);
+  border-radius: var(--ring-unit);
+  padding: calc(var(--ring-unit) / 2);
+}
+
+.issueDropzoneActive {
+  border-color: rgba(0, 110, 255, 0.65);
+  background: rgba(0, 110, 255, 0.06);
+}
+
+.issueAutosaveTick {
+  display: none;
+}
+
+.constructorSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+}
+
+.constructorAddRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ring-unit);
+  align-items: start;
+}
+
+.constructorSectionTitle {
+  font-weight: 600;
+}
+
+.expectedActualGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--ring-unit) * 2);
+}
+
+.sidePanel {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 1.5);
+  padding: calc(var(--ring-unit) * 1.5);
+  border: 1px solid var(--ring-borders-color);
+  border-radius: var(--ring-unit);
+  background: var(--ring-content-background-color);
+}
+
+.sidePanelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+}
+
+.sidePanelTitle {
+  font-weight: 600;
+}
+
+.sidePanelTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ring-unit);
+}
+
+.sidePanelBody {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 1.5);
+}
+
+.savedBlocksList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+  max-height: 360px;
+  overflow: auto;
+  padding-right: var(--ring-unit);
+}
+
+.savedBlock {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ring-unit);
+  align-items: center;
+  padding: var(--ring-unit);
+  border: 1px solid var(--ring-borders-color);
+  border-radius: var(--ring-unit);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.savedBlockButton {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.savedBlockText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.savedBlockDraggable {
+  cursor: grab;
+  user-select: none;
+}
+
+.savedBlockDraggable:active {
+  cursor: grabbing;
+}
+
+.savedBlockActions {
+  display: flex;
+  align-items: center;
+}
+
+.savedBlockOverlay {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background: var(--ring-content-background-color);
+  pointer-events: none;
+}
+
+.sidePanelAdd {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ring-unit);
+}
+
+.dropList {
+  border: 1px dashed rgba(0, 0, 0, 0.25);
+  border-radius: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 1.5);
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.dropListActive {
+  border-color: rgba(0, 140, 255, 0.8);
+  background: rgba(0, 140, 255, 0.06);
+}
+
+.dropZone {
+  border-style: dashed;
+}
+
+.dropZoneActive {
+  border-color: rgba(0, 140, 255, 0.8);
+  background: rgba(0, 140, 255, 0.06);
+}
+
+.dropZoneTarget {
+  display: none;
+}
+
+.itemsList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+}
+
+.itemsListItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ring-unit);
+  align-items: center;
+}
+
+.itemsListActions {
+  display: flex;
+  gap: calc(var(--ring-unit) / 2);
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.itemsListText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.emptyHint {
+  font-size: 12px;
+  color: var(--ring-secondary-color);
+}
+
+.attachmentsList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) / 2);
+}
+
+@media (max-width: 900px) {
+  .constructorLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidePanel {
+    position: static;
+  }
+
+  .expectedActualGrid {
+    grid-template-columns: 1fr;
+  }
+}
