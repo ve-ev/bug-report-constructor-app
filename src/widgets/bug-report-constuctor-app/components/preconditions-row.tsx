@@ -4,6 +4,7 @@ import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
 import {getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
+import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
 
 export type PreconditionsRowProps = {
   dropEnabled: boolean;
@@ -40,7 +41,16 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   rows = DEFAULT_ROWS
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const selectionRef = useRef<{start: number; end: number}>({start: 0, end: 0});
+
+  const resolveTextarea = useCallback(() => textareaRef.current, []);
+
+  const {
+    selectionRef,
+    captureSelection,
+    freezeSelectionForDrag,
+    restoreFrozenSelection,
+    resetDragState
+  } = useFrozenSelectionDnd({resolveElement: resolveTextarea, selectionTrackingEnabled: true});
 
   const {isOver, setNodeRef} = useDroppable({
     id: PRECONDITIONS_DROP_ID,
@@ -54,6 +64,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
     }
     selectionRef.current = {start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0};
   }, []);
+
 
   const insertAtCursor = useCallback(
     (text: string) => {
@@ -70,8 +81,16 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
 
       const currentValue = el.value;
       const isFocused = document.activeElement === el;
+
+      // If user didn't manually focus Preconditions, do not move focus here.
+      // Insert/append without relying on potentially stale selection.
+      if (!isFocused) {
+        onValueChange(appendLineIfNeeded(currentValue, insertRaw));
+        return;
+      }
+
       const fallback = selectionRef.current;
-      const selection = isFocused ? getSelectionFromElement(el, fallback) : fallback;
+      const selection = getSelectionFromElement(el, fallback);
       const before = currentValue.slice(0, selection.start);
       const needsLeadingNewline = !!before.trim() && !before.endsWith('\n');
       const insert = needsLeadingNewline ? `\n${insertRaw}` : insertRaw;
@@ -80,7 +99,10 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
       onValueChange(next);
 
       requestAnimationFrame(() => {
-        el.focus();
+        // Keep caret only when Preconditions is still focused.
+        if (document.activeElement !== el) {
+          return;
+        }
         el.setSelectionRange(caret, caret);
         selectionRef.current = {start: caret, end: caret};
       });
@@ -99,26 +121,58 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
     (event: {over?: {id?: unknown} | null; active: {data: {current: unknown}}}) => {
       const overId = event.over?.id;
       if (overId !== PRECONDITIONS_DROP_ID) {
+        resetDragState();
         return;
       }
 
       const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
       if (data?.tab !== 'preconditions' || !data.text) {
+        resetDragState();
         return;
       }
 
+      // Restore the frozen caret before inserting, so insertion is stable even if focus/selection
+      // changed during DnD.
+      restoreFrozenSelection();
       insertAtCursor(data.text);
+      resetDragState();
     },
-    [insertAtCursor]
+    [insertAtCursor, resetDragState, restoreFrozenSelection]
   );
 
-  useDndMonitor({onDragEnd});
+  const onDragStart = useCallback(
+    (event: {active: {data: {current: unknown}}}) => {
+      if (!dropEnabled) {
+        return;
+      }
+
+      const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
+      if (data?.tab !== 'preconditions') {
+        return;
+      }
+
+      // Freeze selection only if Preconditions was focused; otherwise do not steal focus.
+      freezeSelectionForDrag();
+    },
+    [dropEnabled, freezeSelectionForDrag]
+  );
+
+  const onDragCancel = useCallback(() => {
+    resetDragState();
+  }, [resetDragState]);
+
+  useDndMonitor({onDragStart, onDragEnd, onDragCancel});
 
   const onChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onValueChange(e.target.value);
+      const el = e.target;
+      textareaRef.current = el;
+      // Keep caret position up-to-date while the field stays focused.
+      // Typing usually doesn't trigger `selectionchange`, so we must capture it here.
+      captureSelection(el);
+      onValueChange(el.value);
     },
-    [onValueChange]
+    [captureSelection, onValueChange]
   );
 
   return (

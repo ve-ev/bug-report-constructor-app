@@ -5,6 +5,7 @@ import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
 import {getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
+import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
 
 const SUMMARY_AUTOSAVE_MS = 650;
 
@@ -36,69 +37,33 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
-  const draggingSummaryChunkRef = useRef(false);
-  const dragSelectionRef = useRef<{start: number; end: number} | null>(null);
-
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-  const selectionRef = useRef<{start: number; end: number}>({start: 0, end: 0});
+
+  const resolveInput = useCallback(() => {
+    const active = document.activeElement;
+    const activeInput =
+      active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? active : null;
+    const el = inputRef.current ?? activeInput;
+    if (el) {
+      // EditableHeading may mount the input before the first onChange; capture it when focused.
+      inputRef.current = el;
+    }
+    return el;
+  }, []);
+
+  const {
+    selectionRef,
+    draggingRef: draggingSummaryChunkRef,
+    captureSelection,
+    freezeSelectionForDrag,
+    restoreFrozenSelection,
+    resetDragState
+  } = useFrozenSelectionDnd({resolveElement: resolveInput, selectionTrackingEnabled: isEditing});
 
   const {isOver, setNodeRef} = useDroppable({
     id: SUMMARY_DROP_ID
   });
 
-  const captureSelection = useCallback((el: HTMLInputElement | HTMLTextAreaElement | null) => {
-    if (!el) {
-      return;
-    }
-    selectionRef.current = {
-      start: el.selectionStart ?? el.value.length,
-      end: el.selectionEnd ?? el.value.length
-    };
-  }, []);
-
-  const resetDragState = useCallback(() => {
-    draggingSummaryChunkRef.current = false;
-    dragSelectionRef.current = null;
-  }, []);
-
-  const restoreFrozenSelection = useCallback(() => {
-    const el = inputRef.current;
-    const frozen = dragSelectionRef.current;
-    if (!el || !frozen) {
-      return;
-    }
-    el.focus?.();
-    const {start, end} = getSelectionFromElement(el, frozen);
-    el.setSelectionRange?.(start, end);
-    selectionRef.current = {start, end};
-  }, []);
-
-  useEffect(() => {
-    const onSelectionChange = () => {
-      const el = inputRef.current;
-      if (!el) {
-        return;
-      }
-      if (document.activeElement !== el) {
-        return;
-      }
-      if (draggingSummaryChunkRef.current) {
-        return;
-      }
-      captureSelection(el);
-    };
-
-    if (!isEditing) {
-      return () => {
-        // no-op
-      };
-    }
-
-    document.addEventListener('selectionchange', onSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', onSelectionChange);
-    };
-  }, [captureSelection, isEditing]);
 
   const insertAtCursor = useCallback(
     (text: string) => {
@@ -107,7 +72,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         return;
       }
 
-      const el = inputRef.current;
+      const el = resolveInput();
       if (!el) {
         onValueChange(appendSummaryChunk(value, clean));
         return;
@@ -115,14 +80,23 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
 
       const current = el.value;
       const isFocused = document.activeElement === el;
+      if (!isFocused) {
+        // Don't steal focus if user didn't manually place caret into Summary.
+        onValueChange(appendSummaryChunk(value, clean));
+        return;
+      }
+
       const fallback = selectionRef.current;
-      const selection = isFocused ? getSelectionFromElement(el, fallback) : fallback;
+      const selection = getSelectionFromElement(el, fallback);
 
       const {next, caret} = insertTextAtSelection(current, selection, clean);
       onValueChange(next);
 
       requestAnimationFrame(() => {
-        el.focus?.();
+        // Keep caret only when Summary is still focused.
+        if (document.activeElement !== el) {
+          return;
+        }
         el.setSelectionRange?.(caret, caret);
         selectionRef.current = {start: caret, end: caret};
       });
@@ -198,27 +172,11 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
       }
       const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
       if (data?.tab === 'summary') {
-        draggingSummaryChunkRef.current = true;
-
-        // Freeze caret position for the duration of the drag.
-        dragSelectionRef.current = {...selectionRef.current};
-
-        // Ensure the caret is visible during DnD: keep Summary input focused and
-        // restore last known selection.
-        requestAnimationFrame(() => {
-          const el = inputRef.current;
-          if (!el) {
-            return;
-          }
-          el.focus?.();
-          const frozen = dragSelectionRef.current ?? selectionRef.current;
-          const start = Math.max(0, Math.min(el.value.length, frozen.start));
-          const end = Math.max(0, Math.min(el.value.length, frozen.end));
-          el.setSelectionRange?.(start, end);
-        });
+        // Freeze selection only if Summary was focused; otherwise do not steal focus.
+        freezeSelectionForDrag();
       }
     },
-    [isEditing]
+    [freezeSelectionForDrag, isEditing]
   );
 
   const onSummaryDragCancel = useCallback(() => {
