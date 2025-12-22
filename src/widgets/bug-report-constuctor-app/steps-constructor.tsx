@@ -2,7 +2,7 @@ import React, {useCallback, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDroppable} from '@dnd-kit/core';
 
-import {IssueDropzone, IssueField} from './issue-field.tsx';
+import {FieldDropzone, FieldComponent} from './field-component.tsx';
 import {createId} from './id.ts';
 
 export const STEPS_DROP_ID = 'issue-drop-steps';
@@ -115,8 +115,8 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
   }, [dropEnabled]);
 
   return (
-    <IssueField label="Steps to reproduce">
-      <IssueDropzone isOver={isOver} setNodeRef={setNodeRef} className="issueDropzonePadded">
+    <FieldComponent label="Steps to reproduce">
+      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="fieldDropzonePadded">
         <div className="constructorAddRow">
           <textarea
             id="issue-new-step"
@@ -131,7 +131,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
           </Button>
         </div>
 
-        <div className={isOver ? 'dropList dropListActive issueStepsDropList' : 'dropList issueStepsDropList'}>
+        <div className={isOver ? 'dropList dropListActive stepsDropList' : 'dropList stepsDropList'}>
           {steps.length ? (
             <ol className="itemsList">
               {steps.map((s, idx) => (
@@ -155,7 +155,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
             <div className="emptyHint">{emptyHint}</div>
           )}
         </div>
-      </IssueDropzone>
-    </IssueField>
+      </FieldDropzone>
+    </FieldComponent>
   );
 };

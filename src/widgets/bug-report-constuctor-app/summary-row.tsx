@@ -3,7 +3,7 @@ import {EditableHeading, Levels, Size} from '@jetbrains/ring-ui-built/components
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
-import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from './issue-summary-utils.ts';
+import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from './summary-row-utils.ts';
 import {getSelectionFromElement, insertTextAtSelection} from './text-insert.ts';
 
 const SUMMARY_AUTOSAVE_MS = 650;
@@ -21,14 +21,14 @@ function isInputLikeTarget(el: HTMLElement | null): boolean {
   );
 }
 
-export type IssueSummaryRowProps = {
+export type SummaryRowProps = {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
   onRegisterInsertAtCursor?: (fn: (text: string) => void) => void;
 };
 
-export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
+export const SummaryRow: React.FC<SummaryRowProps> = ({
   value,
   onValueChange,
   placeholder = 'Click to add summary',
@@ -248,7 +248,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
   }
 
   return (
-    <div ref={setNodeRef} className={isOver ? 'issueSummaryRow issueDropzoneActive' : 'issueSummaryRow'}>
+    <div ref={setNodeRef} className={isOver ? 'issueSummaryRow fieldDropzoneActive' : 'issueSummaryRow'}>
       <EditableHeading
         level={Levels.H1}
         size={Size.L}
@@ -293,7 +293,7 @@ export const IssueSummaryRow: React.FC<IssueSummaryRowProps> = ({
       </EditableHeading>
 
       {/* prevents TS “unused state” while still making autosave observable in React DevTools */}
-      <span className="issueAutosaveTick" aria-hidden>
+      <span className="fieldAutosaveTick" aria-hidden>
         {autosaveTick ? '' : ''}
       </span>
     </div>

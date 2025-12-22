@@ -114,36 +114,36 @@
   min-width: 0;
 }
 
-.issueField {
+.field {
   display: flex;
   flex-direction: column;
   gap: var(--ring-unit);
 }
 
-.issueFieldLabel {
+.fieldLabel {
   font-weight: 600;
 }
 
-.issueStepsDropList {
+.stepsDropList {
   min-height: calc(var(--ring-unit) * 10);
 }
 
-.issueDropzone {
+.fieldDropzone {
   border: 1px dashed rgba(0, 0, 0, 0.18);
   border-radius: var(--ring-unit);
   padding: calc(var(--ring-unit) / 2);
 }
 
-.issueDropzonePadded {
+.fieldDropzonePadded {
   padding: calc(var(--ring-unit) * 1);
 }
 
-.issueDropzoneActive {
+.fieldDropzoneActive {
   border-color: rgba(0, 110, 255, 0.65);
   background: rgba(0, 110, 255, 0.06);
 }
 
-.issueAutosaveTick {
+.fieldAutosaveTick {
   display: none;
 }
 

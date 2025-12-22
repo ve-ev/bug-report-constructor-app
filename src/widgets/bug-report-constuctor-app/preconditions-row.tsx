@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useRef} from 'react';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
-import {IssueDropzone, IssueField} from './issue-field.tsx';
+import {FieldDropzone, FieldComponent} from './field-component.tsx';
 import {getSelectionFromElement, insertTextAtSelection} from './text-insert.ts';
 
 export type PreconditionsRowProps = {
@@ -112,8 +112,8 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   });
 
   return (
-    <IssueField label="Preconditions" htmlFor="issue-preconditions">
-      <IssueDropzone isOver={isOver} setNodeRef={setNodeRef}>
+    <FieldComponent label="Preconditions" htmlFor="issue-preconditions">
+      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef}>
         <textarea
           id="issue-preconditions"
           ref={textareaRef}
@@ -127,7 +127,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
           onMouseUp={onSelect}
           rows={rows}
         />
-      </IssueDropzone>
-    </IssueField>
+      </FieldDropzone>
+    </FieldComponent>
   );
 };

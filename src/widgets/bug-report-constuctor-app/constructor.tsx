@@ -11,13 +11,13 @@ import {
 
 import {API} from './api.ts';
 import type {SavedBlocks} from './types.ts';
-import {IssueSummaryRow} from './issue-summary-row.tsx';
-import {appendSummaryChunk} from './issue-summary-utils.ts';
+import {SummaryRow} from './summary-row.tsx';
+import {appendSummaryChunk} from './summary-row-utils.ts';
 import {PreconditionsRow} from './preconditions-row.tsx';
 import {SavedBlocksPanel, type SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {StepItem, StepsConstructor, STEPS_DROP_ID} from './steps-constructor.tsx';
 import {createId} from './id.ts';
-import {normalizeSavedBlocks} from './saved-blocks-normalize.ts';
+import {normalizeSavedBlocks} from './saved-blocks-utils.ts';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -173,7 +173,7 @@ export const Constructor: React.FC = () => {
       <div className="constructorLayout">
         <div className="constructorMain">
           <div className="issueForm">
-            <IssueSummaryRow
+            <SummaryRow
               value={summary}
               onValueChange={setSummary}
               onRegisterInsertAtCursor={onRegisterSummaryInsert}

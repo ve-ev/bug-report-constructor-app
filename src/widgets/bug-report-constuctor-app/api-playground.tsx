@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {API} from './api.ts';
 import {SavedBlocks} from './types.ts';
-import {normalizeSavedBlocks} from './saved-blocks-normalize.ts';
+import {normalizeSavedBlocks} from './saved-blocks-utils.ts';
 import {computeIsBusy, computeLoadSaveTitles, computeStatus} from './ui-state.ts';
 
 const JSON_PRETTY_SPACES = 2;
