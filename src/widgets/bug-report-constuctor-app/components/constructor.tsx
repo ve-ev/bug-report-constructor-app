@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core';
 
 import {API} from '../api.ts';
-import type {SavedBlocks} from '../types.ts';
+import type {OutputFormatsPayload, SavedBlocks} from '../types.ts';
 import {SummaryRow} from './summary-row.tsx';
 import {appendSummaryChunk} from '../utils/summary-row-utils.ts';
 import {PreconditionsRow} from './preconditions-row.tsx';
@@ -21,14 +21,23 @@ import {normalizeSavedBlocks} from '../utils/saved-blocks-utils.ts';
 import {FieldComponent} from './field-component.tsx';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {buildBugReportDescription, OutputFormat} from '../tools/markdown.ts';
-import {safeGetItem, safeSetItem} from '../tools/safe-storage.ts';
 import {copyToClipboard} from '../tools/clipboard.ts';
+import {OutputFormatsField} from './output-formats-field.tsx';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
   preconditions: [],
   steps: []
 };
+
+function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
+  const active = payload.activeFormat;
+  if (active === 'markdown_default' || active === 'markdown_issue_template') {
+    return active;
+  }
+  const knownCustom = new Set(payload.formats.map(f => f.id));
+  return knownCustom.has(active) ? active : 'markdown_default';
+}
 
 export const Constructor: React.FC = () => {
   const [api, setApi] = useState<API | null>(null);
@@ -60,16 +69,26 @@ export const Constructor: React.FC = () => {
   const generatedDescriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>(() => {
-    const stored = safeGetItem('bugReport.outputFormat');
-    return stored === 'markdown_issue_template' || stored === 'markdown_default'
-      ? stored
-      : 'markdown_default';
+  const [outputFormatsLoading, setOutputFormatsLoading] = useState(false);
+  const [outputFormatsSaving, setOutputFormatsSaving] = useState(false);
+  const [outputFormatsError, setOutputFormatsError] = useState<string | null>(null);
+  const [outputFormatsMessage, setOutputFormatsMessage] = useState<string | null>(null);
+
+  const [outputFormats, setOutputFormats] = useState<OutputFormatsPayload>({
+    activeFormat: 'markdown_default',
+    formats: []
   });
 
-  useEffect(() => {
-    safeSetItem('bugReport.outputFormat', outputFormat);
-  }, [outputFormat]);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown_default');
+  const [showFormatsEditor, setShowFormatsEditor] = useState(false);
+
+  const templatesById = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const f of outputFormats.formats) {
+      map[f.id] = f.template;
+    }
+    return map;
+  }, [outputFormats.formats]);
 
   const description = buildBugReportDescription(
     {
@@ -81,7 +100,8 @@ export const Constructor: React.FC = () => {
       additionalInfo,
       attachments: []
     },
-    outputFormat
+    outputFormat,
+    {templatesById}
   );
 
   useEffect(() => {
@@ -97,6 +117,63 @@ export const Constructor: React.FC = () => {
       disposed = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!api) {
+      return () => {
+        // no-op
+      };
+    }
+
+    let disposed = false;
+    (async () => {
+      setOutputFormatsMessage(null);
+      setOutputFormatsError(null);
+      setOutputFormatsLoading(true);
+      try {
+        const loaded = await api.getOutputFormats();
+        if (disposed) {
+          return;
+        }
+        setOutputFormats(loaded);
+
+        setOutputFormat(resolveActiveOutputFormat(loaded));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setOutputFormatsError(msg);
+      } finally {
+        if (!disposed) {
+          setOutputFormatsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      disposed = true;
+    };
+  }, [api]);
+
+  const persistOutputFormats = useCallback(async (next: OutputFormatsPayload) => {
+    if (!api) {
+      setOutputFormats(next);
+      return;
+    }
+    setOutputFormatsMessage(null);
+    setOutputFormatsError(null);
+    setOutputFormatsSaving(true);
+    try {
+      const saved = await api.setOutputFormats(next);
+      setOutputFormats(saved);
+      setOutputFormatsMessage('Saved output formats.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setOutputFormatsError(msg);
+      // Keep local changes in-memory.
+      setOutputFormats(next);
+    } finally {
+      setOutputFormatsSaving(false);
+    }
+  }, [api]);
 
   const loadSavedBlocks = useCallback(async () => {
     if (!api) {
@@ -228,6 +305,23 @@ export const Constructor: React.FC = () => {
     setCopyStatus('Clipboard is blocked. Text selected — press Ctrl/Cmd+C to copy.');
   }, [description, selectGeneratedDescription]);
 
+  const onExpectedChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setExpected(e.target.value);
+  }, []);
+
+  const onActualChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setActual(e.target.value);
+  }, []);
+
+  const onAdditionalInfoChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setAdditionalInfo(e.target.value);
+  }, []);
+
+  const onGeneratedDescriptionFocus = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
+    // Helpful for manual copy when Clipboard API is blocked.
+    e.target.select();
+  }, []);
+
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
       <div className="constructorLayout">
@@ -254,7 +348,7 @@ export const Constructor: React.FC = () => {
                   id="expected"
                   rows={6}
                   value={expected}
-                  onChange={e => setExpected((e.target as HTMLTextAreaElement).value)}
+                  onChange={onExpectedChange}
                 />
               </FieldComponent>
 
@@ -263,7 +357,7 @@ export const Constructor: React.FC = () => {
                   id="actual"
                   rows={6}
                   value={actual}
-                  onChange={e => setActual((e.target as HTMLTextAreaElement).value)}
+                  onChange={onActualChange}
                 />
               </FieldComponent>
             </div>
@@ -273,20 +367,23 @@ export const Constructor: React.FC = () => {
                 id="additionalInfo"
                 rows={6}
                 value={additionalInfo}
-                onChange={e => setAdditionalInfo((e.target as HTMLTextAreaElement).value)}
+                onChange={onAdditionalInfoChange}
               />
             </FieldComponent>
 
-            <FieldComponent label="Output format" htmlFor="outputFormat">
-              <select
-                id="outputFormat"
-                value={outputFormat}
-                onChange={e => setOutputFormat((e.target as HTMLSelectElement).value as OutputFormat)}
-              >
-                <option value="markdown_default">Markdown (default)</option>
-                <option value="markdown_issue_template">Markdown (issue template)</option>
-              </select>
-            </FieldComponent>
+            <OutputFormatsField
+              outputFormat={outputFormat}
+              setOutputFormat={setOutputFormat}
+              outputFormats={outputFormats}
+              setOutputFormats={setOutputFormats}
+              persistOutputFormats={persistOutputFormats}
+              loading={outputFormatsLoading}
+              saving={outputFormatsSaving}
+              error={outputFormatsError}
+              message={outputFormatsMessage}
+              showEditor={showFormatsEditor}
+              setShowEditor={setShowFormatsEditor}
+            />
 
             <FieldComponent label="Generated description" htmlFor="generatedDescription">
               <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
@@ -296,10 +393,7 @@ export const Constructor: React.FC = () => {
                   rows={14}
                   readOnly
                   value={description}
-                  onFocus={e => {
-                    // Helpful for manual copy when Clipboard API is blocked.
-                    (e.target as HTMLTextAreaElement).select();
-                  }}
+                  onFocus={onGeneratedDescriptionFocus}
                 />
                 <div>
                   <Button

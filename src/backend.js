@@ -10,6 +10,13 @@ function defaultSavedBlocks() {
   };
 }
 
+function defaultOutputFormats() {
+  return {
+    activeFormat: 'markdown_default',
+    formats: []
+  };
+}
+
 function isRecord(value) {
   return !!value && typeof value === 'object';
 }
@@ -33,6 +40,50 @@ function normalizeSavedBlocks(value) {
   }
 
   return null;
+}
+
+function normalizeOutputFormats(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const activeFormat = normalizeActiveFormat(value.activeFormat);
+  const formats = normalizeFormatsList(value.formats);
+
+  return {activeFormat, formats};
+}
+
+function normalizeActiveFormat(raw) {
+  return typeof raw === 'string' && raw.trim() ? raw.trim() : 'markdown_default';
+}
+
+function normalizeFormatsList(raw) {
+  const formatsRaw = Array.isArray(raw) ? raw : [];
+  const formats = [];
+
+  for (const item of formatsRaw) {
+    const normalized = normalizeFormatItem(item);
+    if (normalized) {
+      formats.push(normalized);
+    }
+  }
+
+  return formats;
+}
+
+function normalizeFormatItem(item) {
+  if (!isRecord(item)) {
+    return null;
+  }
+  const id = typeof item.id === 'string' ? item.id.trim() : '';
+  const name = typeof item.name === 'string' ? item.name.trim() : '';
+  const template = typeof item.template === 'string' ? item.template : '';
+
+  if (!id || !name) {
+    return null;
+  }
+
+  return {id, name, template};
 }
 
 exports.httpHandler = {
@@ -87,6 +138,60 @@ exports.httpHandler = {
 
         if (props) {
           props.savedBlocks = JSON.stringify(normalized);
+        }
+
+        ctx.response.json(normalized);
+      }
+    },
+    {
+      method: 'GET',
+      path: 'output-formats',
+      handle: function handle(ctx) {
+        const props = getExtensionProperties(ctx);
+
+        let result;
+        if (!props || !props.outputFormats) {
+          result = defaultOutputFormats();
+        } else {
+          try {
+            const parsed = JSON.parse(props.outputFormats);
+            const normalized = normalizeOutputFormats(parsed);
+            if (normalized) {
+              result = normalized;
+            } else {
+              ctx.response.json({
+                error: 'Output formats data has an unexpected format.'
+              });
+              return;
+            }
+          } catch {
+            ctx.response.json({
+              error: 'Failed to parse output formats from storage.'
+            });
+            return;
+          }
+        }
+
+        ctx.response.json(result);
+      }
+    },
+    {
+      method: 'POST',
+      path: 'output-formats',
+      handle: function handle(ctx) {
+        const payload = ctx.request.json();
+        const props = getExtensionProperties(ctx);
+
+        const normalized = normalizeOutputFormats(payload);
+        if (!normalized) {
+          ctx.response.json({
+            error: 'Invalid payload for output formats.'
+          });
+          return;
+        }
+
+        if (props) {
+          props.outputFormats = JSON.stringify(normalized);
         }
 
         ctx.response.json(normalized);

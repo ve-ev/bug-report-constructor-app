@@ -145,6 +145,18 @@ export const ApiPlayground: React.FunctionComponent = () => {
     setStepsText('');
   }, []);
 
+  const onSummaryChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSummaryText(e.target.value);
+  }, []);
+
+  const onPreconditionsChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPreconditionsText(e.target.value);
+  }, []);
+
+  const onStepsChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setStepsText(e.target.value);
+  }, []);
+
   const {isBusy, canCallApi, loadTitle, saveTitle, showStatus, statusClassName, statusText} = buildUiState({
     api,
     loading,
@@ -161,7 +173,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
           <textarea
             className="fieldInput"
             value={summaryText}
-            onChange={e => setSummaryText(e.target.value)}
+            onChange={onSummaryChange}
             rows={3}
           />
         </label>
@@ -171,7 +183,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
           <textarea
             className="fieldInput"
             value={preconditionsText}
-            onChange={e => setPreconditionsText(e.target.value)}
+            onChange={onPreconditionsChange}
             rows={3}
           />
         </label>
@@ -181,7 +193,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
           <textarea
             className="fieldInput"
             value={stepsText}
-            onChange={e => setStepsText(e.target.value)}
+            onChange={onStepsChange}
             rows={6}
           />
         </label>

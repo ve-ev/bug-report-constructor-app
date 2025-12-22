@@ -12,7 +12,7 @@ interface DraggableBlockProps {
   text: string;
   index: number;
   onClick?: (text: string) => void;
-  onRemove?: () => void;
+  onRemove?: (index: number) => void;
 }
 
 const DRAGGING_OPACITY = 0.65;
@@ -36,20 +36,34 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
     opacity: isDragging ? DRAGGING_OPACITY : 1
   };
 
+  const onSummaryButtonPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    // Keep focus in the Summary input (EditableHeading) while dragging/clicking summary chunks.
+    // Preventing default stops the button from stealing focus and triggering Summary `onBlur`.
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const onSavedBlockActionPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    e.stopPropagation();
+  }, []);
+
+  const onBlockDoubleClick = useCallback(() => {
+    onClick?.(text);
+  }, [onClick, text]);
+
+  const onRemoveClick = useCallback(() => {
+    onRemove?.(index);
+  }, [index, onRemove]);
+
   if (tab === 'summary') {
     return (
       <div ref={setNodeRef} className="savedBlock" style={style} {...attributes}>
         <button
           type="button"
           className="savedBlockButton"
-          onPointerDown={e => {
-            // Keep focus in the Summary input (EditableHeading) while dragging/clicking summary chunks.
-            // Preventing default stops the button from stealing focus and triggering Summary `onBlur`.
-            e.preventDefault();
-            e.stopPropagation();
-          }}
+          onPointerDown={onSummaryButtonPointerDown}
           {...listeners}
-          onDoubleClick={() => onClick?.(text)}
+          onDoubleClick={onBlockDoubleClick}
           title="Double click to insert into Summary. Drag to insert at cursor."
         >
           {text}
@@ -58,8 +72,8 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
         <div className="savedBlockActions">
           <Button
             inline
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove?.()}
+            onPointerDown={onSavedBlockActionPointerDown}
+            onClick={onRemoveClick}
             title="Remove block"
             disabled={!onRemove}
           >
@@ -78,15 +92,15 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
       title="Double click to insert. Drag into a section."
       {...attributes}
       {...listeners}
-      onDoubleClick={() => onClick?.(text)}
+      onDoubleClick={onBlockDoubleClick}
     >
       <div className="savedBlockText">{text}</div>
 
       <div className="savedBlockActions">
         <Button
           inline
-          onPointerDown={e => e.stopPropagation()}
-          onClick={() => onRemove?.()}
+          onPointerDown={onSavedBlockActionPointerDown}
+          onClick={onRemoveClick}
           title="Remove block"
           disabled={!onRemove}
         >
@@ -229,7 +243,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
                 text={item.text}
                 index={item.index}
                 onClick={onInsert}
-                onRemove={() => removeAt(item.index)}
+                onRemove={removeAt}
               />
             ))
           ) : (

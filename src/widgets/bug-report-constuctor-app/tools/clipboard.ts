@@ -10,9 +10,9 @@ function isLikelyClipboardApiAllowed(): boolean | undefined {
   return typeof window !== 'undefined' && (window as unknown as { isSecureContext?: boolean }).isSecureContext;
 }
 
-function tryExecCommandCopy(text: string): boolean {
+function createHiddenTextarea(text: string): HTMLTextAreaElement | null {
   if (typeof document === 'undefined') {
-    return false;
+    return null;
   }
 
   const el = document.createElement('textarea');
@@ -29,32 +29,61 @@ function tryExecCommandCopy(text: string): boolean {
   el.style.pointerEvents = 'none';
 
   document.body.appendChild(el);
+  return el;
+}
 
+function captureActiveRange(): Range | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
   const selection = document.getSelection?.();
-  const prevRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  return selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+}
+
+function restoreActiveRange(range: Range | null): void {
+  if (!range || typeof document === 'undefined') {
+    return;
+  }
+
+  try {
+    const selection = document.getSelection?.();
+    if (!selection) {
+      return;
+    }
+    selection.removeAllRanges();
+    selection.addRange(range);
+  } catch {
+    // ignore
+  }
+}
+
+function execCopy(): boolean {
+  if (typeof document === 'undefined') {
+    return false;
+  }
+  try {
+    return document.execCommand?.('copy') ?? false;
+  } catch {
+    return false;
+  }
+}
+
+function tryExecCommandCopy(text: string): boolean {
+  const el = createHiddenTextarea(text);
+  if (!el) {
+    return false;
+  }
+
+  const prevRange = captureActiveRange();
 
   el.focus();
   el.select();
   el.setSelectionRange(0, el.value.length);
 
-  let ok: boolean;
-  try {
-    ok = document.execCommand?.('copy') ?? false;
-  } catch {
-    ok = false;
-  }
+  const ok = execCopy();
 
   document.body.removeChild(el);
-
-  // Restore selection if possible.
-  try {
-    if (selection && prevRange) {
-      selection.removeAllRanges();
-      selection.addRange(prevRange);
-    }
-  } catch {
-    // ignore
-  }
+  restoreActiveRange(prevRange);
 
   return ok;
 }

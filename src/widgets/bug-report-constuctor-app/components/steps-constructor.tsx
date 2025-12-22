@@ -21,6 +21,10 @@ export interface StepsConstructorProps {
 export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChangeSteps, dropEnabled}) => {
   const [newStep, setNewStep] = useState('');
 
+  const onNewStepChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewStep(e.target.value);
+  }, []);
+
   const {isOver, setNodeRef} = useDroppable({
     id: STEPS_DROP_ID,
     disabled: !dropEnabled
@@ -123,7 +127,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
             className="fieldInput"
             placeholder="Describe a step…"
             value={newStep}
-            onChange={e => setNewStep(e.target.value)}
+            onChange={onNewStepChange}
             rows={2}
           />
           <Button primary onClick={addStep} disabled={!canAdd}>

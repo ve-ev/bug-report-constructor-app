@@ -191,8 +191,8 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
     onRegisterInsertAtCursor?.(insertSummaryChunk);
   }, [insertSummaryChunk, onRegisterInsertAtCursor]);
 
-  useDndMonitor({
-    onDragStart: event => {
+  const onSummaryDragStart = useCallback(
+    (event: {active: {data: {current: unknown}}}) => {
       if (!isEditing) {
         return;
       }
@@ -218,10 +218,17 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         });
       }
     },
+    [isEditing]
+  );
+
+  const onSummaryDragCancel = useCallback(() => {
+    resetDragState();
+  }, [resetDragState]);
+
+  useDndMonitor({
+    onDragStart: onSummaryDragStart,
     onDragEnd,
-    onDragCancel: () => {
-      resetDragState();
-    }
+    onDragCancel: onSummaryDragCancel
   });
 
   // “Autosave” for summary: debounce local commit and allow consumers to hook real persistence later.
@@ -247,6 +254,51 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
     title = value;
   }
 
+  const onEdit = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setIsEditing(false);
+    }
+  }, []);
+
+  const onChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const el = e.target;
+      inputRef.current = el;
+      captureSelection(el);
+      onValueChange(el.value);
+    },
+    [captureSelection, onValueChange]
+  );
+
+  const onPaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const pasted = e.clipboardData.getData('text/plain');
+      const clean = normalizeSummaryInsert(pasted);
+      if (!clean) {
+        return;
+      }
+      e.preventDefault();
+
+      const el = e.target as HTMLInputElement | HTMLTextAreaElement;
+      inputRef.current = el;
+      const current = el.value;
+      const selection = getSelectionFromElement(el, selectionRef.current);
+      const {next, caret} = insertTextAtSelection(current, selection, clean);
+      onValueChange(next);
+
+      requestAnimationFrame(() => {
+        el.setSelectionRange?.(caret, caret);
+        selectionRef.current = {start: caret, end: caret};
+      });
+    },
+    [onValueChange]
+  );
+
   return (
     <div ref={setNodeRef} className={isOver ? 'issueSummaryRow fieldDropzoneActive' : 'issueSummaryRow'}>
       <EditableHeading
@@ -254,40 +306,11 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         size={Size.L}
         embedded
         isEditing={isEditing}
-        onEdit={() => setIsEditing(true)}
+        onEdit={onEdit}
         onBlur={onBlur}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            setIsEditing(false);
-          }
-        }}
-        onChange={e => {
-          const el = e.target as HTMLInputElement | HTMLTextAreaElement;
-          inputRef.current = el;
-          captureSelection(el);
-          onValueChange(el.value);
-        }}
-        onPaste={e => {
-          const pasted = e.clipboardData.getData('text/plain');
-          const clean = normalizeSummaryInsert(pasted);
-          if (!clean) {
-            return;
-          }
-          e.preventDefault();
-
-          const el = e.target as HTMLInputElement | HTMLTextAreaElement;
-          inputRef.current = el;
-          const current = el.value;
-          const selection = getSelectionFromElement(el, selectionRef.current);
-          const {next, caret} = insertTextAtSelection(current, selection, clean);
-          onValueChange(next);
-
-          requestAnimationFrame(() => {
-            el.setSelectionRange?.(caret, caret);
-            selectionRef.current = {start: caret, end: caret};
-          });
-        }}
+        onKeyDown={onKeyDown}
+        onChange={onChange}
+        onPaste={onPaste}
       >
         {title}
       </EditableHeading>

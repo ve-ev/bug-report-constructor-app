@@ -95,8 +95,8 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
     };
   }, [insertAtCursor, onRegisterInsertAtCursor]);
 
-  useDndMonitor({
-    onDragEnd: event => {
+  const onDragEnd = useCallback(
+    (event: {over?: {id?: unknown} | null; active: {data: {current: unknown}}}) => {
       const overId = event.over?.id;
       if (overId !== PRECONDITIONS_DROP_ID) {
         return;
@@ -108,8 +108,18 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
       }
 
       insertAtCursor(data.text);
-    }
-  });
+    },
+    [insertAtCursor]
+  );
+
+  useDndMonitor({onDragEnd});
+
+  const onChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onValueChange(e.target.value);
+    },
+    [onValueChange]
+  );
 
   return (
     <FieldComponent label="Preconditions" htmlFor="issue-preconditions">
@@ -120,7 +130,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
           className="fieldInput"
           placeholder="Drop Preconditions blocks here or type them…"
           value={value}
-          onChange={e => onValueChange(e.target.value)}
+          onChange={onChange}
           onSelect={onSelect}
           onFocus={onSelect}
           onKeyUp={onSelect}

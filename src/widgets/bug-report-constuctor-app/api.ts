@@ -1,4 +1,4 @@
-import {SavedBlocks} from "./types.ts";
+import {OutputFormatsPayload, SavedBlocks} from './types.ts';
 import {HostAPI} from "../../../@types/globals";
 
 export class API {
@@ -29,6 +29,21 @@ export class API {
                 'Content-Type': 'application/json'
             }
         })
+    }
+
+    async getOutputFormats(): Promise<OutputFormatsPayload> {
+        return this.fetch('output-formats', {method: 'GET'});
+    }
+
+    async setOutputFormats(payload: OutputFormatsPayload): Promise<OutputFormatsPayload> {
+        return await this.fetch<OutputFormatsPayload>('output-formats', {
+            method: 'POST',
+            sendRawBody: false,
+            body: payload,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
     }
 
     async fetch<T = Record<string, unknown>>(path: string, options?: Record<string, unknown>): Promise<T> {

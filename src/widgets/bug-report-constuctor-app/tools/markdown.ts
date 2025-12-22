@@ -1,14 +1,6 @@
-export interface BugReportDraft {
-  summary: string;
-  preconditions: string[];
-  steps: string[];
-  expected: string;
-  actual: string;
-  additionalInfo: string;
-  attachments: {name: string}[];
-}
+import {BugReportDraft} from "../types.ts";
 
-export type OutputFormat = 'markdown_default' | 'markdown_issue_template';
+export type OutputFormat = string;
 
 function normalizeLines(list: string[]): string[] {
   return list.map(s => s.trim()).filter(Boolean);
@@ -85,40 +77,141 @@ function pushTemplateNumbered(lines: string[], title: string, items: string[]): 
   lines.push('');
 }
 
-export function buildBugReportDescription(draft: BugReportDraft, format: OutputFormat): string {
+export function buildBugReportDescription(
+  draft: BugReportDraft,
+  format: OutputFormat,
+  opts?: {
+    /** Custom templates keyed by format id. */
+    templatesById?: Record<string, string>;
+  }
+): string {
   const preconditions = normalizeLines(draft.preconditions);
   const steps = normalizeLines(draft.steps);
+  const summary = draft.summary.trim();
 
   const lines: string[] = [];
 
-  const summary = draft.summary.trim();
-  if (summary) {
-    lines.push(summary, '');
-  }
-
   if (format === 'markdown_issue_template') {
-    // Template requested in the issue description.
-    pushTemplateLines(lines, 'Prerequisites', preconditions);
-    pushTemplateNumbered(lines, 'Steps to reproduce:', steps);
-    pushTemplateText(lines, 'Expected results:', draft.expected);
-    pushTemplateText(lines, 'Current results:', draft.actual);
-    pushTemplateText(lines, 'Additional information:', draft.additionalInfo);
+    buildIssueTemplateDescriptionLines(lines, {draft, preconditions, steps, summary});
+  } else if (format === 'markdown_default') {
+    buildDefaultDescriptionLines(lines, {draft, preconditions, steps, summary});
   } else {
-    pushBulletsSection(lines, 'Prerequisites', preconditions);
-    pushNumberedSection(lines, 'Steps', steps);
-    pushTextSection(lines, 'Expected', draft.expected);
-    pushTextSection(lines, 'Actual', draft.actual);
-    pushTextSection(lines, 'Additional info', draft.additionalInfo);
-
-    if (draft.attachments.length) {
-      pushBulletsSection(
-        lines,
-        'Attachments',
-        draft.attachments.map(a => a.name)
-      );
-    }
+    buildCustomDescriptionLines(lines, {draft, preconditions, steps, format, opts});
   }
 
   // Avoid trailing whitespace, keep a single trailing newline.
   return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function buildIssueTemplateDescriptionLines(
+  lines: string[],
+  params: {
+    draft: BugReportDraft;
+    preconditions: string[];
+    steps: string[];
+    summary: string;
+  }
+): void {
+  const {draft, preconditions, steps, summary} = params;
+  if (summary) {
+    lines.push(summary, '');
+  }
+  // Template requested in the issue description.
+  pushTemplateLines(lines, 'Prerequisites', preconditions);
+  pushTemplateNumbered(lines, 'Steps to reproduce:', steps);
+  pushTemplateText(lines, 'Expected results:', draft.expected);
+  pushTemplateText(lines, 'Current results:', draft.actual);
+  pushTemplateText(lines, 'Additional information:', draft.additionalInfo);
+}
+
+function buildDefaultDescriptionLines(
+  lines: string[],
+  params: {
+    draft: BugReportDraft;
+    preconditions: string[];
+    steps: string[];
+    summary: string;
+  }
+): void {
+  const {draft, preconditions, steps, summary} = params;
+  if (summary) {
+    lines.push(summary, '');
+  }
+
+  pushBulletsSection(lines, 'Prerequisites', preconditions);
+  pushNumberedSection(lines, 'Steps', steps);
+  pushTextSection(lines, 'Expected', draft.expected);
+  pushTextSection(lines, 'Actual', draft.actual);
+  pushTextSection(lines, 'Additional info', draft.additionalInfo);
+
+  if (draft.attachments.length) {
+    pushBulletsSection(
+      lines,
+      'Attachments',
+      draft.attachments.map(a => a.name)
+    );
+  }
+}
+
+function buildCustomDescriptionLines(
+  lines: string[],
+  params: {
+    draft: BugReportDraft;
+    preconditions: string[];
+    steps: string[];
+    format: OutputFormat;
+    opts?: {templatesById?: Record<string, string>};
+  }
+): void {
+  const {draft, preconditions, steps, format, opts} = params;
+  // Custom user-defined template.
+  const template = opts?.templatesById?.[format] ?? '';
+  const rendered = renderCustomTemplate(draft, {template});
+
+  // If something goes wrong, fall back to default markdown.
+  if (rendered.trim()) {
+    lines.push(rendered.trim(), '');
+    return;
+  }
+
+  // Keep behavior consistent: do not inject Summary unless the user included {{summary}}.
+  pushBulletsSection(lines, 'Prerequisites', preconditions);
+  pushNumberedSection(lines, 'Steps', steps);
+  pushTextSection(lines, 'Expected', draft.expected);
+  pushTextSection(lines, 'Actual', draft.actual);
+  pushTextSection(lines, 'Additional info', draft.additionalInfo);
+}
+
+export function renderCustomTemplate(
+  draft: BugReportDraft,
+  opts: {
+    template: string;
+  }
+): string {
+  const preconditions = normalizeLines(draft.preconditions);
+  const steps = normalizeLines(draft.steps);
+  const attachments = normalizeLines(draft.attachments.map(a => a.name));
+
+  const vars: Record<string, string> = {
+    summary: draft.summary.trim(),
+    preconditions: preconditions.join('\n'),
+    'preconditions_bullets': preconditions.length ? preconditions.map(x => `- ${x}`).join('\n') : '-',
+    steps: steps.join('\n'),
+    'steps_numbered': steps.length ? steps.map((x, i) => `${i + 1}. ${x}`).join('\n') : '1.',
+    expected: draft.expected.trim(),
+    actual: draft.actual.trim(),
+    additionalInfo: draft.additionalInfo.trim(),
+    'attachments_bullets': attachments.length ? attachments.map(x => `- ${x}`).join('\n') : '-'
+  };
+
+  const template = opts.template ?? '';
+  if (!template.trim()) {
+    return '';
+  }
+
+  // Simple placeholder substitution: {{varName}}.
+  // Unknown placeholders are replaced with an empty string.
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_m, name: string) => {
+    return Object.prototype.hasOwnProperty.call(vars, name) ? vars[name] : '';
+  });
 }
