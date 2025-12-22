@@ -57,14 +57,6 @@ function pushTemplateText(lines: string[], title: string, text: string): void {
   lines.push('');
 }
 
-function pushTemplateLines(lines: string[], title: string, items: string[]): void {
-  pushH2(lines, title);
-  if (items.length) {
-    lines.push(...items);
-  }
-  lines.push('');
-}
-
 function pushTemplateNumbered(lines: string[], title: string, items: string[]): void {
   pushH2(lines, title);
   if (items.length) {
@@ -73,6 +65,18 @@ function pushTemplateNumbered(lines: string[], title: string, items: string[]): 
     }
   } else {
     lines.push('1.');
+  }
+  lines.push('');
+}
+
+function pushTemplateBullets(lines: string[], title: string, items: string[]): void {
+  pushH2(lines, title);
+  if (items.length) {
+    for (const item of items) {
+      lines.push(`- ${item}`);
+    }
+  } else {
+    lines.push('-');
   }
   lines.push('');
 }
@@ -91,10 +95,8 @@ export function buildBugReportDescription(
 
   const lines: string[] = [];
 
-  if (format === 'markdown_issue_template') {
+  if (format === 'markdown_default') {
     buildIssueTemplateDescriptionLines(lines, {draft, preconditions, steps, summary});
-  } else if (format === 'markdown_default') {
-    buildDefaultDescriptionLines(lines, {draft, preconditions, steps, summary});
   } else {
     buildCustomDescriptionLines(lines, {draft, preconditions, steps, format, opts});
   }
@@ -117,40 +119,11 @@ function buildIssueTemplateDescriptionLines(
     lines.push(summary, '');
   }
   // Template requested in the issue description.
-  pushTemplateLines(lines, 'Prerequisites', preconditions);
+  pushTemplateBullets(lines, 'Prerequisites', preconditions);
   pushTemplateNumbered(lines, 'Steps to reproduce:', steps);
   pushTemplateText(lines, 'Expected results:', draft.expected);
   pushTemplateText(lines, 'Current results:', draft.actual);
   pushTemplateText(lines, 'Additional information:', draft.additionalInfo);
-}
-
-function buildDefaultDescriptionLines(
-  lines: string[],
-  params: {
-    draft: BugReportDraft;
-    preconditions: string[];
-    steps: string[];
-    summary: string;
-  }
-): void {
-  const {draft, preconditions, steps, summary} = params;
-  if (summary) {
-    lines.push(summary, '');
-  }
-
-  pushBulletsSection(lines, 'Prerequisites', preconditions);
-  pushNumberedSection(lines, 'Steps', steps);
-  pushTextSection(lines, 'Expected', draft.expected);
-  pushTextSection(lines, 'Actual', draft.actual);
-  pushTextSection(lines, 'Additional info', draft.additionalInfo);
-
-  if (draft.attachments.length) {
-    pushBulletsSection(
-      lines,
-      'Attachments',
-      draft.attachments.map(a => a.name)
-    );
-  }
 }
 
 function buildCustomDescriptionLines(

@@ -32,9 +32,10 @@ const EMPTY_SAVED_BLOCKS: SavedBlocks = {
 
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;
-  if (active === 'markdown_default' || active === 'markdown_issue_template') {
-    return active;
+  if (active === 'markdown_default') {
+    return 'markdown_default';
   }
+
   const knownCustom = new Set(payload.formats.map(f => f.id));
   return knownCustom.has(active) ? active : 'markdown_default';
 }

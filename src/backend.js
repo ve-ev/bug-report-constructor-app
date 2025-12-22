@@ -54,7 +54,12 @@ function normalizeOutputFormats(value) {
 }
 
 function normalizeActiveFormat(raw) {
-  return typeof raw === 'string' && raw.trim() ? raw.trim() : 'markdown_default';
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  if (!value) {
+    return 'markdown_default';
+  }
+
+  return value;
 }
 
 function normalizeFormatsList(raw) {

@@ -53,8 +53,7 @@ const OutputFormatsSelect: React.FC<{
       onChange={onOutputFormatSelectChange}
       disabled={loading || saving}
     >
-      <option value="markdown_default">Markdown (default)</option>
-      <option value="markdown_issue_template">Markdown (issue template)</option>
+      <option value="markdown_default">Default Markdown Template</option>
       {outputFormats.formats.length ? <option disabled>────────</option> : null}
       {outputFormats.formats.map(f => (
         <option key={f.id} value={f.id}>
