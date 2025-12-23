@@ -12,7 +12,7 @@ import {
 import {API} from '../api.ts';
 import type {OutputFormatsPayload, SavedBlocks} from '../types.ts';
 import {SummaryRow} from './summary-row.tsx';
-import {appendSummaryChunk} from '../utils/summary-row-utils.ts';
+import {appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
 import {PreconditionsRow} from './preconditions-row.tsx';
 import {SavedBlocksPanel, type SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {StepItem, StepsConstructor, STEPS_DROP_ID} from './steps-constructor.tsx';
@@ -40,6 +40,14 @@ function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat 
   return knownCustom.has(active) ? active : 'markdown_default';
 }
 
+function normalizeSelectionForSavedBlock(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+// eslint-disable-next-line complexity
 export const Constructor: React.FC = () => {
   const [api, setApi] = useState<API | null>(null);
 
@@ -62,6 +70,7 @@ export const Constructor: React.FC = () => {
 
   const [preconditions, setPreconditions] = useState('');
   const [steps, setSteps] = useState<StepItem[]>([]);
+  const [lastAddedStepText, setLastAddedStepText] = useState<string | null>(null);
 
   const [expected, setExpected] = useState('');
   const [actual, setActual] = useState('');
@@ -83,6 +92,28 @@ export const Constructor: React.FC = () => {
 
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown_default');
   const [showFormatsEditor, setShowFormatsEditor] = useState(false);
+
+  const autoLoadedSavedBlocksRef = useRef(false);
+
+  const uniqAppend = useCallback((list: string[], items: string[]): string[] => {
+    if (!items.length) {
+      return list;
+    }
+    const set = new Set(list);
+    const next = [...list];
+    for (const item of items) {
+      const t = item.trim();
+      if (!t) {
+        continue;
+      }
+      if (set.has(t)) {
+        continue;
+      }
+      set.add(t);
+      next.push(t);
+    }
+    return next;
+  }, []);
 
   const templatesById = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -197,26 +228,147 @@ export const Constructor: React.FC = () => {
     }
   }, [api]);
 
-  const saveSavedBlocks = useCallback(async () => {
+  const persistSavedBlocks = useCallback(
+    // eslint-disable-next-line complexity
+    async (next: SavedBlocks, options?: {successMessage?: string}) => {
+      // Optimistic local update to keep UI responsive.
+      setSavedBlocks(next);
+
+      if (!api) {
+        setBlocksMessage(options?.successMessage ?? null);
+        return;
+      }
+
+      setBlocksMessage(null);
+      setBlocksError(null);
+      setBlocksSaving(true);
+      try {
+        const saved = normalizeSavedBlocks(await api.setSavedBlocks(next));
+        setSavedBlocks(saved);
+        setBlocksMessage(options?.successMessage ?? 'Saved blocks.');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setBlocksError(msg);
+        // Keep optimistic UI state in-memory.
+      } finally {
+        setBlocksSaving(false);
+      }
+    },
+    [api]
+  );
+
+  const onChangeSavedBlocks = useCallback(
+    (next: SavedBlocks) => {
+      persistSavedBlocks(next).catch(() => {
+        // errors are already surfaced via component state inside persistSavedBlocks
+      });
+    },
+    [persistSavedBlocks]
+  );
+
+  useEffect(() => {
     if (!api) {
       return;
     }
-
-    setBlocksMessage(null);
-    setBlocksError(null);
-    setBlocksSaving(true);
-    try {
-      await api.setSavedBlocks(savedBlocks);
-      setBlocksMessage('Saved blocks.');
-      const loaded = normalizeSavedBlocks(await api.getSavedBlocks());
-      setSavedBlocks(loaded);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setBlocksError(msg);
-    } finally {
-      setBlocksSaving(false);
+    if (autoLoadedSavedBlocksRef.current) {
+      return;
     }
-  }, [api, savedBlocks]);
+    autoLoadedSavedBlocksRef.current = true;
+    loadSavedBlocks().catch(() => {
+      // errors are already surfaced via component state inside loadSavedBlocks
+    });
+  }, [api, loadSavedBlocks]);
+
+
+  const onSummaryFocused = useCallback(() => {
+    setActiveTab('summary');
+  }, []);
+
+  const onPreconditionsFocused = useCallback(() => {
+    setActiveTab('preconditions');
+  }, []);
+
+  const onStepsFocused = useCallback(() => {
+    setActiveTab('steps');
+  }, []);
+
+  const savePreconditionsToSavedBlocks = useCallback(async () => {
+    const items = preconditions
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (!items.length) {
+      return;
+    }
+
+    const next = {
+      ...savedBlocks,
+      preconditions: uniqAppend(savedBlocks.preconditions, items)
+    };
+    await persistSavedBlocks(next, {successMessage: 'Saved Preconditions blocks.'});
+    setActiveTab('preconditions');
+  }, [persistSavedBlocks, preconditions, savedBlocks, uniqAppend]);
+
+  const onSaveSummarySelection = useCallback(
+    async (text: string) => {
+      const clean = normalizeSummaryInsert(text);
+      if (!clean) {
+        return;
+      }
+      const next = {
+        ...savedBlocks,
+        summary: uniqAppend(savedBlocks.summary, [clean])
+      };
+      await persistSavedBlocks(next, {successMessage: 'Saved Summary block.'});
+      setActiveTab('summary');
+    },
+    [persistSavedBlocks, savedBlocks, uniqAppend]
+  );
+
+  const onSavePreconditionsSelection = useCallback(
+    async (text: string) => {
+      const clean = normalizeSelectionForSavedBlock(text);
+      if (!clean) {
+        return;
+      }
+      const next = {
+        ...savedBlocks,
+        preconditions: uniqAppend(savedBlocks.preconditions, [clean])
+      };
+      await persistSavedBlocks(next, {successMessage: 'Saved Preconditions block.'});
+      setActiveTab('preconditions');
+    },
+    [persistSavedBlocks, savedBlocks, uniqAppend]
+  );
+
+  const onStepAdded = useCallback((text: string) => {
+    setLastAddedStepText(text);
+  }, []);
+
+  const saveLastStepToSavedBlocks = useCallback(async () => {
+    const t = (lastAddedStepText ?? '').trim();
+    if (!t) {
+      return;
+    }
+
+    const next = {
+      ...savedBlocks,
+      steps: uniqAppend(savedBlocks.steps, [t])
+    };
+    await persistSavedBlocks(next, {successMessage: 'Saved last added step block.'});
+    setActiveTab('steps');
+  }, [lastAddedStepText, persistSavedBlocks, savedBlocks, uniqAppend]);
+
+  const onResetForm = useCallback(() => {
+    setSummary('');
+    setPreconditions('');
+    setSteps([]);
+    setLastAddedStepText(null);
+    setExpected('');
+    setActual('');
+    setAdditionalInfo('');
+    setCopyStatus(null);
+  }, []);
 
   const insertSummaryChunk = useCallback((text: string) => {
     if (summaryInsertRef.current) {
@@ -333,11 +485,17 @@ export const Constructor: React.FC = () => {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={onResetForm}>Reset form</Button>
+            </div>
+
             <SummaryRow
               value={summary}
               onValueChange={setSummary}
               onRegisterInsertAtCursor={onRegisterSummaryInsert}
               dropEnabled={activeDrag?.tab === 'summary'}
+              onFocused={onSummaryFocused}
+              onSaveSelection={onSaveSummarySelection}
             />
 
             <PreconditionsRow
@@ -345,9 +503,29 @@ export const Constructor: React.FC = () => {
               value={preconditions}
               onValueChange={setPreconditions}
               onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
+              onFocused={onPreconditionsFocused}
+              onSaveSelection={onSavePreconditionsSelection}
             />
 
-            <StepsConstructor steps={steps} onChangeSteps={setSteps} dropEnabled={stepsDropEnabled} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
+                Save Preconditions to Saved Blocks
+              </Button>
+            </div>
+
+            <StepsConstructor
+              steps={steps}
+              onChangeSteps={setSteps}
+              dropEnabled={stepsDropEnabled}
+              onFocused={onStepsFocused}
+              onStepAdded={onStepAdded}
+            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button disabled={!lastAddedStepText?.trim()} onClick={saveLastStepToSavedBlocks}>
+                Save last added step to Saved Blocks
+              </Button>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <FieldComponent label="Expected results" htmlFor="expected">
@@ -388,7 +566,7 @@ export const Constructor: React.FC = () => {
             blocks={savedBlocks}
             activeTab={activeTab}
             onChangeTab={setActiveTab}
-            onChangeBlocks={setSavedBlocks}
+            onChangeBlocks={onChangeSavedBlocks}
             onClickInsertSummary={insertSummaryChunk}
             onClickInsertPreconditions={insertPreconditions}
             onClickInsertStep={insertStep}
@@ -396,8 +574,6 @@ export const Constructor: React.FC = () => {
             saving={blocksSaving}
             error={blocksError}
             message={blocksMessage}
-            onLoad={loadSavedBlocks}
-            onSave={saveSavedBlocks}
           />
 
           <OutputFormatsForm

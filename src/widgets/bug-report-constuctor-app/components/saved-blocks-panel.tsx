@@ -3,7 +3,7 @@ import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDraggable} from '@dnd-kit/core';
 
 import type {SavedBlocks} from '../types.ts';
-import {computeIsBusy, computeLoadSaveTitles, computeStatus} from '../tools/ui-state.ts';
+import {computeIsBusy, computeStatus} from '../tools/ui-state.ts';
 
 export type SavedBlocksTab = keyof SavedBlocks;
 
@@ -149,8 +149,6 @@ export interface SavedBlocksPanelProps {
   saving: boolean;
   error: string | null;
   message: string | null;
-  onLoad: () => void;
-  onSave: () => void;
 }
 
 export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
@@ -165,9 +163,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
     loading,
     saving,
     error,
-    message,
-    onLoad,
-    onSave
+    message
   } = props;
 
   const [newBlockText, setNewBlockText] = useState('');
@@ -194,12 +190,6 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
 
   const isBusy = computeIsBusy(loading, saving);
   const canAdd = computeCanAdd({newBlockText, isBusy});
-  const {loadTitle, saveTitle} = computeLoadSaveTitles({
-    loading,
-    saving,
-    loadIdleTitle: 'Load',
-    saveIdleTitle: 'Save'
-  });
   const {showStatus, statusClassName, statusText} = computeStatus({message, error});
 
   const addBlock = useCallback(() => {
@@ -211,6 +201,16 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
     onChangeBlocks({...blocks, [activeTab]: [...activeList, value]});
     setNewBlockText('');
   }, [activeList, activeTab, blocks, newBlockText, onChangeBlocks]);
+
+  const clearActiveGroup = useCallback(() => {
+    if (!activeList.length) {
+      return;
+    }
+    if (isBusy) {
+      return;
+    }
+    onChangeBlocks({...blocks, [activeTab]: []});
+  }, [activeList.length, activeTab, blocks, isBusy, onChangeBlocks]);
 
   const removeAt = useCallback(
     (index: number) => {
@@ -292,11 +292,8 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button primary disabled={isBusy} onClick={onLoad}>
-            {loadTitle}
-          </Button>
-          <Button primary disabled={isBusy} onClick={onSave}>
-            {saveTitle}
+          <Button disabled={isBusy || !activeList.length} onClick={clearActiveGroup}>
+            Delete all in group
           </Button>
         </div>
 

@@ -1,5 +1,6 @@
-import React, {useCallback, useEffect, useRef} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
+import Button from '@jetbrains/ring-ui-built/components/button/button';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
@@ -12,6 +13,8 @@ export type PreconditionsRowProps = {
   onValueChange: (value: string) => void;
   rows?: number;
   onRegisterInsertAtCursor?: (fn: ((text: string) => void) | null) => void;
+  onFocused?: () => void;
+  onSaveSelection?: (text: string) => void;
 };
 
 const DEFAULT_ROWS = 5;
@@ -47,9 +50,12 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   value,
   onValueChange,
   onRegisterInsertAtCursor,
-  rows = DEFAULT_ROWS
+  rows = DEFAULT_ROWS,
+  onFocused,
+  onSaveSelection
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [selectedText, setSelectedText] = useState('');
 
   const resolveTextarea = useCallback(() => textareaRef.current, []);
 
@@ -72,7 +78,20 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
       return;
     }
     selectionRef.current = {start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0};
-  }, []);
+
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (start === end) {
+      setSelectedText('');
+      return;
+    }
+    setSelectedText(el.value.slice(Math.min(start, end), Math.max(start, end)));
+  }, [selectionRef]);
+
+  const onFocus = useCallback(() => {
+    onFocused?.();
+    onSelect();
+  }, [onFocused, onSelect]);
 
 
   const insertAtCursor = useCallback(
@@ -119,7 +138,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
         selectionRef.current = {start: caret, end: caret};
       });
     },
-    [onValueChange, value]
+    [onValueChange, selectionRef, value]
   );
 
   useEffect(() => {
@@ -187,9 +206,37 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
     [captureSelection, onValueChange]
   );
 
+  const onSaveSelectionPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    // Preserve focus/selection in the textarea.
+    if (document.activeElement === textareaRef.current) {
+      e.preventDefault();
+    }
+  }, []);
+
+  const onSaveSelectionClick = useCallback(() => {
+    const t = selectedText.trim();
+    if (!t) {
+      return;
+    }
+    onSaveSelection?.(t);
+  }, [onSaveSelection, selectedText]);
+
   return (
     <FieldComponent label="Preconditions" htmlFor="issue-preconditions">
-      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="p-3">
+      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="relative p-3">
+        {selectedText.trim() ? (
+          <div className="absolute right-2 top-2 z-10">
+            <Button
+              inline
+              onPointerDown={onSaveSelectionPointerDown}
+              onClick={onSaveSelectionClick}
+              disabled={!onSaveSelection}
+              title="Save selected text to Saved Blocks"
+            >
+              Save selection
+            </Button>
+          </div>
+        ) : null}
         <textarea
           id="issue-preconditions"
           ref={textareaRef}
@@ -198,7 +245,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
           value={value}
           onChange={onChange}
           onSelect={onSelect}
-          onFocus={onSelect}
+          onFocus={onFocus}
           onKeyUp={onSelect}
           onMouseUp={onSelect}
           rows={rows}

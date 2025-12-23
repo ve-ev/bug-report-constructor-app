@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {EditableHeading, Levels, Size} from '@jetbrains/ring-ui-built/components/editable-heading/editable-heading';
+import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
@@ -28,6 +29,8 @@ export type SummaryRowProps = {
   placeholder?: string;
   onRegisterInsertAtCursor?: (fn: (text: string) => void) => void;
   dropEnabled?: boolean;
+  onFocused?: () => void;
+  onSaveSelection?: (text: string) => void;
 };
 
 export const SummaryRow: React.FC<SummaryRowProps> = ({
@@ -35,9 +38,13 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   onValueChange,
   placeholder = 'Click to add summary',
   onRegisterInsertAtCursor,
-  dropEnabled = true
+  dropEnabled = true,
+  onFocused,
+  onSaveSelection
+  // eslint-disable-next-line complexity
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
 
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
@@ -108,7 +115,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         selectionRef.current = {start: caret, end: caret};
       });
     },
-    [onValueChange, value]
+    [onValueChange, resolveInput, selectionRef, value]
   );
 
   const insertSummaryChunk = useCallback(
@@ -165,12 +172,60 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         setIsEditing(false);
       }
     },
-    []
+    [draggingSummaryChunkRef]
   );
 
   useEffect(() => {
     onRegisterInsertAtCursor?.(insertSummaryChunk);
   }, [insertSummaryChunk, onRegisterInsertAtCursor]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setSelectedText('');
+      return () => {
+        // no-op
+      };
+    }
+
+    const onSelectionChange = () => {
+      const el = resolveInput();
+      if (!el) {
+        setSelectedText('');
+        return;
+      }
+      if (document.activeElement !== el) {
+        setSelectedText('');
+        return;
+      }
+      const start = el.selectionStart ?? 0;
+      const end = el.selectionEnd ?? 0;
+      if (start === end) {
+        setSelectedText('');
+        return;
+      }
+      setSelectedText(el.value.slice(Math.min(start, end), Math.max(start, end)));
+    };
+
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', onSelectionChange);
+    };
+  }, [isEditing, resolveInput]);
+
+  const onSaveSelectionPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    // Preserve focus/selection in the editable input.
+    if (isInputLikeTarget(document.activeElement as HTMLElement | null)) {
+      e.preventDefault();
+    }
+  }, []);
+
+  const onSaveSelectionClick = useCallback(() => {
+    const t = selectedText.trim();
+    if (!t) {
+      return;
+    }
+    onSaveSelection?.(t);
+  }, [onSaveSelection, selectedText]);
 
   const onSummaryDragStart = useCallback(
     (event: {active: {data: {current: unknown}}}) => {
@@ -220,8 +275,9 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   }
 
   const onEdit = useCallback(() => {
+    onFocused?.();
     setIsEditing(true);
-  }, []);
+  }, [onFocused]);
 
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -265,36 +321,54 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         selectionRef.current = {start: caret, end: caret};
       });
     },
-    [onValueChange]
+    [onValueChange, selectionRef]
   );
 
   return (
     <div
       ref={setNodeRef}
-      className={
-        isOver
-          ? 'rounded-md border-2 border-dashed border-sky-400 bg-sky-50/30 p-3 ring-2 ring-sky-300/30'
-          : 'rounded-md border-2 border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3'
-      }
+      className="relative"
     >
-      <EditableHeading
-        level={Levels.H1}
-        size={Size.FULL}
-        embedded
-        isEditing={isEditing}
-        onEdit={onEdit}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
-        onChange={onChange}
-        onPaste={onPaste}
-      >
-        {title}
-      </EditableHeading>
+      {isEditing && selectedText.trim() ? (
+        <div className="absolute right-2 top-2 z-10">
+          <Button
+            inline
+            onPointerDown={onSaveSelectionPointerDown}
+            onClick={onSaveSelectionClick}
+            disabled={!onSaveSelection}
+            title="Save selected text to Saved Blocks"
+          >
+            Save selection
+          </Button>
+        </div>
+      ) : null}
 
-      {/* prevents TS “unused state” while still making autosave observable in React DevTools */}
-      <span className="hidden" aria-hidden>
-        {autosaveTick ? '' : ''}
-      </span>
+      <div
+        className={
+          isOver
+            ? 'rounded-md border-2 border-dashed border-sky-400 bg-sky-50/30 p-3 ring-2 ring-sky-300/30'
+            : 'rounded-md border-2 border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3'
+        }
+      >
+        <EditableHeading
+          level={Levels.H1}
+          size={Size.FULL}
+          embedded
+          isEditing={isEditing}
+          onEdit={onEdit}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          onChange={onChange}
+          onPaste={onPaste}
+        >
+          {title}
+        </EditableHeading>
+
+        {/* prevents TS “unused state” while still making autosave observable in React DevTools */}
+        <span className="hidden" aria-hidden>
+          {autosaveTick ? '' : ''}
+        </span>
+      </div>
     </div>
   );
 };
