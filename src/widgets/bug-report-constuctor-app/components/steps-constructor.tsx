@@ -16,6 +16,7 @@ export interface StepsConstructorProps {
   steps: StepItem[];
   onChangeSteps: (next: StepItem[]) => void;
   dropEnabled: boolean;
+  label?: string;
   onFocused?: () => void;
   onStepAdded?: (text: string) => void;
 }
@@ -24,6 +25,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({
   steps,
   onChangeSteps,
   dropEnabled,
+  label = 'Steps to reproduce',
   onFocused,
   onStepAdded
 }) => {
@@ -133,7 +135,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({
 
   return (
     <div onFocusCapture={onFocusCapture}>
-      <FieldComponent label="Steps to reproduce">
+      <FieldComponent label={label}>
         <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="p-3">
           <div className="flex flex-col gap-2">
             {steps.length ? (

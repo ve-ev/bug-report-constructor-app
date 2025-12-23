@@ -11,6 +11,7 @@ export type PreconditionsRowProps = {
   dropEnabled: boolean;
   value: string;
   onValueChange: (value: string) => void;
+  label?: string;
   rows?: number;
   onRegisterInsertAtCursor?: (fn: ((text: string) => void) | null) => void;
   onFocused?: () => void;
@@ -50,6 +51,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   value,
   onValueChange,
   onRegisterInsertAtCursor,
+  label = 'Preconditions',
   rows = DEFAULT_ROWS,
   onFocused,
   onSaveSelection
@@ -222,7 +224,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   }, [onSaveSelection, selectedText]);
 
   return (
-    <FieldComponent label="Preconditions" htmlFor="issue-preconditions">
+    <FieldComponent label={label} htmlFor="issue-preconditions">
       <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="relative p-3">
         {selectedText.trim() ? (
           <div className="absolute right-2 top-2 z-10">

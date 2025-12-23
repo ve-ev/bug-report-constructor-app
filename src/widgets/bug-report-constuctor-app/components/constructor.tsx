@@ -23,6 +23,7 @@ import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {buildBugReportDescription, OutputFormat} from '../tools/markdown.ts';
 import {copyToClipboard} from '../tools/clipboard.ts';
 import {OutputFormatsForm} from './output-formats-form.tsx';
+import {computeAdaptiveFields} from '../utils/template-ui.ts';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -49,8 +50,12 @@ function normalizeSelectionForSavedBlock(text: string): string {
     .replace(/\s+/g, ' ');
 }
 
+export type ConstructorProps = {
+  onRegisterReset?: (fn: (() => void) | null) => void;
+};
+
 // eslint-disable-next-line complexity
-export const Constructor: React.FC = () => {
+const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   const [api, setApi] = useState<API | null>(null);
 
   const [blocksLoading, setBlocksLoading] = useState(false);
@@ -152,6 +157,12 @@ export const Constructor: React.FC = () => {
     }
     return map;
   }, [outputFormats.formats]);
+
+  const activeTemplate = outputFormat === 'markdown_default' ? '' : (templatesById[outputFormat] ?? '');
+
+  const adaptiveFields = React.useMemo(() => {
+    return computeAdaptiveFields({format: outputFormat, template: activeTemplate});
+  }, [activeTemplate, outputFormat]);
 
   const description = buildBugReportDescription(
     {
@@ -407,6 +418,13 @@ export const Constructor: React.FC = () => {
     setCopyStatus(null);
   }, []);
 
+  useEffect(() => {
+    onRegisterReset?.(onResetForm);
+    return () => {
+      onRegisterReset?.(null);
+    };
+  }, [onRegisterReset, onResetForm]);
+
   const insertSummaryChunk = useCallback((text: string) => {
     if (summaryInsertRef.current) {
       summaryInsertRef.current(text);
@@ -522,10 +540,6 @@ export const Constructor: React.FC = () => {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={onResetForm}>Reset form</Button>
-            </div>
-
             <SummaryRow
               value={summary}
               onValueChange={setSummary}
@@ -535,66 +549,82 @@ export const Constructor: React.FC = () => {
               onSaveSelection={onSaveSummarySelection}
             />
 
-            <PreconditionsRow
-              dropEnabled={activeDrag?.tab === 'preconditions'}
-              value={preconditions}
-              onValueChange={setPreconditions}
-              onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
-              onFocused={onPreconditionsFocused}
-              onSaveSelection={onSavePreconditionsSelection}
-            />
+            {adaptiveFields.preconditions.visible ? (
+              <>
+                <PreconditionsRow
+                  label={adaptiveFields.preconditions.label}
+                  dropEnabled={activeDrag?.tab === 'preconditions'}
+                  value={preconditions}
+                  onValueChange={setPreconditions}
+                  onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
+                  onFocused={onPreconditionsFocused}
+                  onSaveSelection={onSavePreconditionsSelection}
+                />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
-                Save Preconditions to Saved Blocks
-              </Button>
-            </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
+                    Save Preconditions to Saved Blocks
+                  </Button>
+                </div>
+              </>
+            ) : null}
 
-            <StepsConstructor
-              steps={steps}
-              onChangeSteps={setSteps}
-              dropEnabled={stepsDropEnabled}
-              onFocused={onStepsFocused}
-              onStepAdded={onStepAdded}
-            />
+            {adaptiveFields.steps.visible ? (
+              <>
+                <StepsConstructor
+                  label={adaptiveFields.steps.label}
+                  steps={steps}
+                  onChangeSteps={setSteps}
+                  dropEnabled={stepsDropEnabled}
+                  onFocused={onStepsFocused}
+                  onStepAdded={onStepAdded}
+                />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button disabled={!lastAddedStepText?.trim()} onClick={saveLastStepToSavedBlocks}>
-                Save last added step to Saved Blocks
-              </Button>
-            </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button disabled={!lastAddedStepText?.trim()} onClick={saveLastStepToSavedBlocks}>
+                    Save last added step to Saved Blocks
+                  </Button>
+                </div>
+              </>
+            ) : null}
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <FieldComponent label="Expected results" htmlFor="expected">
-                <textarea
-                  id="expected"
-                  rows={6}
-                  value={expected}
-                  onChange={onExpectedChange}
-                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
-                />
-              </FieldComponent>
+              {adaptiveFields.expected.visible ? (
+                <FieldComponent label={adaptiveFields.expected.label} htmlFor="expected">
+                  <textarea
+                    id="expected"
+                    rows={6}
+                    value={expected}
+                    onChange={onExpectedChange}
+                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                  />
+                </FieldComponent>
+              ) : null}
 
-              <FieldComponent label="Current results" htmlFor="actual">
-                <textarea
-                  id="actual"
-                  rows={6}
-                  value={actual}
-                  onChange={onActualChange}
-                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
-                />
-              </FieldComponent>
+              {adaptiveFields.actual.visible ? (
+                <FieldComponent label={adaptiveFields.actual.label} htmlFor="actual">
+                  <textarea
+                    id="actual"
+                    rows={6}
+                    value={actual}
+                    onChange={onActualChange}
+                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                  />
+                </FieldComponent>
+              ) : null}
             </div>
 
-            <FieldComponent label="Additional information" htmlFor="additionalInfo">
-              <textarea
-                id="additionalInfo"
-                rows={6}
-                value={additionalInfo}
-                onChange={onAdditionalInfoChange}
-                className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
-              />
-            </FieldComponent>
+            {adaptiveFields.additionalInfo.visible ? (
+              <FieldComponent label={adaptiveFields.additionalInfo.label} htmlFor="additionalInfo">
+                <textarea
+                  id="additionalInfo"
+                  rows={6}
+                  value={additionalInfo}
+                  onChange={onAdditionalInfoChange}
+                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                />
+              </FieldComponent>
+            ) : null}
           </div>
         </div>
 
@@ -677,3 +707,5 @@ export const Constructor: React.FC = () => {
     </DndContext>
   );
 };
+
+export const Constructor = ConstructorImpl;

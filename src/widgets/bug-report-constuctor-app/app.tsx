@@ -1,26 +1,27 @@
-import React, {memo, useCallback, useState} from 'react';
+import React, {memo, useCallback} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
-import {ApiPlayground} from './api-playground.tsx';
 import {Constructor} from './components/constructor.tsx';
 
 const AppComponent: React.FunctionComponent = () => {
-  const [showPlayground, setShowPlayground] = useState(false);
+  const resetRef = React.useRef<(() => void) | null>(null);
 
-  const onTogglePlayground = useCallback(() => {
-    setShowPlayground(v => !v);
+  const onRegisterReset = useCallback((fn: (() => void) | null) => {
+    resetRef.current = fn;
+  }, []);
+
+  const onResetForm = useCallback(() => {
+    resetRef.current?.();
   }, []);
 
   return (
     <div className="widget">
       <div className="topBar">
-        <Button inline onClick={onTogglePlayground}>
-          {showPlayground ? 'Hide debug' : 'Debug'}
+        <Button onClick={onResetForm}>
+          Reset form
         </Button>
       </div>
 
-      <Constructor/>
-
-      {showPlayground && <ApiPlayground/>}
+      <Constructor onRegisterReset={onRegisterReset}/>
     </div>
   );
 };

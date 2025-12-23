@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 
 import type {OutputFormatsPayload} from '../types.ts';
@@ -42,26 +42,158 @@ const OutputFormatsSelect: React.FC<{
   outputFormats: OutputFormatsPayload;
   loading: boolean;
   saving: boolean;
-  onOutputFormatSelectChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onSelect: (next: OutputFormat) => void;
 }> = props => {
-  const {outputFormat, outputFormats, loading, saving, onOutputFormatSelectChange} = props;
+  const {outputFormat, outputFormats, loading, saving, onSelect} = props;
+
+  const disabled = loading || saving;
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  const items = useMemo(() => {
+    const base: Array<{id: OutputFormat; label: string; kind: 'item' | 'separator'}> = [
+      {id: 'markdown_default', label: 'Default Markdown Template', kind: 'item'}
+    ];
+
+    if (outputFormats.formats.length) {
+      base.push({id: 'markdown_default', label: 'separator', kind: 'separator'});
+    }
+
+    for (const f of outputFormats.formats) {
+      base.push({id: f.id as OutputFormat, label: f.name, kind: 'item'});
+    }
+
+    return base;
+  }, [outputFormats.formats]);
+
+  const selectedLabel = useMemo(() => {
+    if (outputFormat === 'markdown_default') {
+      return 'Default Markdown Template';
+    }
+    const found = outputFormats.formats.find(f => f.id === outputFormat);
+    return found?.name ?? 'Default Markdown Template';
+  }, [outputFormat, outputFormats.formats]);
+
+  const close = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const onToggle = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+    setOpen(v => !v);
+  }, [disabled]);
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled) {
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+        buttonRef.current?.focus();
+      }
+      if (e.key === 'ArrowDown' && !open) {
+        e.preventDefault();
+        setOpen(true);
+      }
+    },
+    [close, disabled, open]
+  );
+
+  useEffect(() => {
+    if (!open) {
+      return () => {
+        // no-op
+      };
+    }
+
+    const onPointerDown = (e: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root) {
+        return;
+      }
+      if (e.target instanceof Node && root.contains(e.target)) {
+        return;
+      }
+      close();
+    };
+
+    window.addEventListener('pointerdown', onPointerDown, {capture: true});
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, {capture: true});
+    };
+  }, [close, open]);
+
+  const onItemClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      const next = e.currentTarget.dataset.value as OutputFormat | undefined;
+      if (!next) {
+        return;
+      }
+      close();
+      onSelect(next);
+      buttonRef.current?.focus();
+    },
+    [close, onSelect]
+  );
 
   return (
-    <select
-      id="outputFormat"
-      value={outputFormat}
-      onChange={onOutputFormatSelectChange}
-      disabled={loading || saving}
-      className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
-    >
-      <option value="markdown_default">Default Markdown Template</option>
-      {outputFormats.formats.length ? <option disabled>────────</option> : null}
-      {outputFormats.formats.map(f => (
-        <option key={f.id} value={f.id}>
-          {f.name}
-        </option>
-      ))}
-    </select>
+    <div ref={rootRef} className="relative min-w-0 flex-1">
+      <button
+        ref={buttonRef}
+        id="outputFormat"
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={onToggle}
+        onKeyDown={onKeyDown}
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-left text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+      >
+        <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
+        <span className="shrink-0 opacity-70" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+            <path d="M5 7l5 6 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      </button>
+
+      {open ? (
+        <div
+          role="listbox"
+          aria-labelledby="outputFormat"
+          tabIndex={-1}
+          onKeyDown={onKeyDown}
+          className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-auto rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-1 shadow-lg"
+        >
+          {items.map(item =>
+            item.kind === 'separator' ? (
+              <div key="separator" className="my-1 border-t border-[var(--ring-borders-color)]"/>
+            ) : (
+              <button
+                key={item.id}
+                type="button"
+                role="option"
+                aria-selected={item.id === outputFormat}
+                data-value={item.id}
+                onClick={onItemClick}
+                className={
+                  item.id === outputFormat
+                    ? 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-sky-50/40'
+                    : 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-black/5'
+                }
+              >
+                {item.label}
+              </button>
+            )
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 };
 
@@ -104,7 +236,7 @@ const OutputFormatsToolbar: React.FC<{
   showEditor: boolean;
   error: string | null;
   message: string | null;
-  onOutputFormatSelectChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onSelectOutputFormat: (next: OutputFormat) => void;
   onToggleEditor: () => void;
   onAddCustomFormat: () => void;
   onSave: () => void;
@@ -117,7 +249,7 @@ const OutputFormatsToolbar: React.FC<{
     showEditor,
     error,
     message,
-    onOutputFormatSelectChange,
+    onSelectOutputFormat,
     onToggleEditor,
     onAddCustomFormat,
     onSave
@@ -131,7 +263,7 @@ const OutputFormatsToolbar: React.FC<{
           outputFormats={outputFormats}
           loading={loading}
           saving={saving}
-          onOutputFormatSelectChange={onOutputFormatSelectChange}
+          onSelect={onSelectOutputFormat}
         />
 
         <OutputFormatsActions
@@ -164,15 +296,14 @@ const CustomFormatsEditor: React.FC<{
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
-        Placeholders:{' '}
+      <div className="rounded-md border border-sky-300 bg-sky-50/40 px-3 py-2 text-[13px] text-sky-950">
+        <span className="font-semibold">Placeholders:</span>{' '}
         {PLACEHOLDERS.map((p, idx) => (
           <React.Fragment key={p}>
             {idx ? ', ' : ''}
-            {p}
+            <span className="font-mono">{p}</span>
           </React.Fragment>
         ))}
-        .
       </div>
 
       {outputFormats.formats.length ? (
@@ -205,7 +336,7 @@ const CustomFormatsEditor: React.FC<{
         </div>
       ) : (
         <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
-          No custom formats yet.
+          No custom formats yet
         </div>
       )}
     </div>
@@ -231,14 +362,14 @@ export const OutputFormatsForm: React.FC<OutputFormatsFormProps> = props => {
     setShowEditor(prev => !prev);
   }, [setShowEditor]);
 
-  const onChangeOutputFormat = useCallback((next: string) => {
+  const onChangeOutputFormat = useCallback((next: OutputFormat) => {
     setOutputFormat(next);
     persistOutputFormats({...outputFormats, activeFormat: next});
   }, [outputFormats, persistOutputFormats, setOutputFormat]);
 
-  const onOutputFormatSelectChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      onChangeOutputFormat(e.target.value);
+  const onSelectOutputFormat = useCallback(
+    (next: OutputFormat) => {
+      onChangeOutputFormat(next);
     },
     [onChangeOutputFormat]
   );
@@ -335,7 +466,7 @@ export const OutputFormatsForm: React.FC<OutputFormatsFormProps> = props => {
           showEditor={showEditor}
           error={error}
           message={message}
-          onOutputFormatSelectChange={onOutputFormatSelectChange}
+          onSelectOutputFormat={onSelectOutputFormat}
           onToggleEditor={onToggleEditor}
           onAddCustomFormat={onAddCustomFormat}
           onSave={onSave}
