@@ -23,7 +23,7 @@ const PLACEHOLDERS = [
   '{{additionalInfo}}'
 ] as const;
 
-type OutputFormatsFieldProps = {
+type OutputFormatsFormProps = {
   outputFormat: OutputFormat;
   setOutputFormat: (id: OutputFormat) => void;
   outputFormats: OutputFormatsPayload;
@@ -52,6 +52,7 @@ const OutputFormatsSelect: React.FC<{
       value={outputFormat}
       onChange={onOutputFormatSelectChange}
       disabled={loading || saving}
+      className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
     >
       <option value="markdown_default">Default Markdown Template</option>
       {outputFormats.formats.length ? <option disabled>────────</option> : null}
@@ -80,13 +81,17 @@ const OutputFormatsActions: React.FC<{
         {showEditor ? 'Hide editor' : 'Edit / add'}
       </Button>
 
-      <Button onClick={onAddCustomFormat} disabled={loading || saving}>
-        Add custom format
-      </Button>
+      {showEditor ? (
+        <>
+          <Button onClick={onAddCustomFormat} disabled={loading || saving}>
+            Add custom format
+          </Button>
 
-      <Button onClick={onSave} disabled={loading || saving}>
-        Save
-      </Button>
+          <Button onClick={onSave} disabled={loading || saving}>
+            Save
+          </Button>
+        </>
+      ) : null}
     </>
   );
 };
@@ -120,7 +125,7 @@ const OutputFormatsToolbar: React.FC<{
 
   return (
     <>
-      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+      <div className="flex flex-wrap items-center gap-2">
         <OutputFormatsSelect
           outputFormat={outputFormat}
           outputFormats={outputFormats}
@@ -139,8 +144,12 @@ const OutputFormatsToolbar: React.FC<{
         />
       </div>
 
-      {error ? <div className="emptyHint">{error}</div> : null}
-      {message ? <div className="emptyHint">{message}</div> : null}
+      {error ? (
+        <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-[13px] text-red-900">{error}</div>
+      ) : null}
+      {message ? (
+        <div className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-[13px] text-green-900">{message}</div>
+      ) : null}
     </>
   );
 };
@@ -154,8 +163,8 @@ const CustomFormatsEditor: React.FC<{
   const {outputFormats, onCustomFormatNameChange, onCustomFormatTemplateChange, onCustomFormatDeleteClick} = props;
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-      <div className="emptyHint">
+    <div className="flex flex-col gap-3">
+      <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
         Placeholders:{' '}
         {PLACEHOLDERS.map((p, idx) => (
           <React.Fragment key={p}>
@@ -167,15 +176,18 @@ const CustomFormatsEditor: React.FC<{
       </div>
 
       {outputFormats.formats.length ? (
-        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+        <div className="flex flex-col gap-3">
           {outputFormats.formats.map(f => (
-            <div key={f.id} style={{border: '1px solid #ddd', padding: 12}}>
-              <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8}}>
+            <div
+              key={f.id}
+              className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3"
+            >
+              <div className="mb-2 flex items-center gap-2">
                 <input
                   data-format-id={f.id}
                   value={f.name}
                   onChange={onCustomFormatNameChange}
-                  style={{flex: 1}}
+                  className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
                 />
                 <Button data-format-id={f.id} onClick={onCustomFormatDeleteClick}>
                   Delete
@@ -186,19 +198,21 @@ const CustomFormatsEditor: React.FC<{
                 data-format-id={f.id}
                 value={f.template}
                 onChange={onCustomFormatTemplateChange}
-                style={{width: '100%'}}
+                className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
               />
             </div>
           ))}
         </div>
       ) : (
-        <div className="emptyHint">No custom formats yet.</div>
+        <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
+          No custom formats yet.
+        </div>
       )}
     </div>
   );
 };
 
-export const OutputFormatsField: React.FC<OutputFormatsFieldProps> = props => {
+export const OutputFormatsForm: React.FC<OutputFormatsFormProps> = props => {
   const {
     outputFormat,
     setOutputFormat,
@@ -312,7 +326,7 @@ export const OutputFormatsField: React.FC<OutputFormatsFieldProps> = props => {
 
   return (
     <FieldComponent label="Output format" htmlFor="outputFormat">
-      <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+      <div className="flex flex-col gap-2">
         <OutputFormatsToolbar
           outputFormat={outputFormat}
           outputFormats={outputFormats}

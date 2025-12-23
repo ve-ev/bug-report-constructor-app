@@ -77,19 +77,24 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
 
   if (tab === 'summary') {
     return (
-      <div ref={setNodeRef} className="savedBlock" style={style} {...attributes}>
+      <div
+        ref={setNodeRef}
+        className="flex items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2"
+        style={style}
+        {...attributes}
+      >
         <button
           type="button"
-          className="savedBlockButton"
+          className="min-w-0 flex-1 rounded px-2 py-1 text-left text-[13px] leading-5 hover:bg-black/5"
           onPointerDownCapture={onSummaryButtonPointerDown}
           {...listeners}
           onDoubleClick={onBlockDoubleClick}
           title="Double click to insert into Summary. Drag to insert at cursor."
         >
-          {text}
+          <span className="whitespace-pre-wrap break-words">{text}</span>
         </button>
 
-        <div className="savedBlockActions">
+        <div className="shrink-0">
           <Button
             inline
             onPointerDown={onSavedBlockActionPointerDown}
@@ -107,7 +112,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
   return (
     <div
       ref={setNodeRef}
-      className="savedBlock savedBlockDraggable"
+      className="flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 active:cursor-grabbing"
       style={style}
       title="Double click to insert. Drag into a section."
       onPointerDownCapture={onBlockPointerDown}
@@ -115,9 +120,9 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
       {...listeners}
       onDoubleClick={onBlockDoubleClick}
     >
-      <div className="savedBlockText">{text}</div>
+      <div className="min-w-0 flex-1 whitespace-pre-wrap break-words px-2 py-1 text-[13px] leading-5">{text}</div>
 
-      <div className="savedBlockActions">
+      <div className="shrink-0">
         <Button
           inline
           onPointerDown={onSavedBlockActionPointerDown}
@@ -236,10 +241,10 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
   ];
 
   return (
-    <div className="sidePanel">
-      <div className="sidePanelHeader">
-        <div className="sidePanelTitle">Saved Blocks</div>
-        <div className="sidePanelTabs">
+    <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)]">
+      <div className="flex flex-col gap-2 border-b border-[var(--ring-borders-color)] p-3">
+        <div className="text-[13px] font-semibold">Saved Blocks</div>
+        <div className="flex flex-wrap gap-2">
           {tabButtons.map(t => (
             <Button
               key={t.id}
@@ -254,8 +259,8 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
         </div>
       </div>
 
-      <div className="sidePanelBody">
-        <div className="savedBlocksList">
+      <div className="flex flex-col gap-3 p-3">
+        <div className="flex flex-col gap-2">
           {activeList.length ? (
             blockItems.map(item => (
               <DraggableBlock
@@ -268,13 +273,15 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
               />
             ))
           ) : (
-            <div className="emptyHint">No saved blocks yet.</div>
+            <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
+              No saved blocks yet.
+            </div>
           )}
         </div>
 
-        <div className="sidePanelAdd">
+        <div className="flex gap-2">
           <input
-            className="fieldInput"
+            className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
             value={newBlockText}
             onChange={onChangeNewBlockText}
             placeholder="New block…"
@@ -284,7 +291,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
           </Button>
         </div>
 
-        <div className="actions">
+        <div className="flex flex-wrap items-center gap-2">
           <Button primary disabled={isBusy} onClick={onLoad}>
             {loadTitle}
           </Button>

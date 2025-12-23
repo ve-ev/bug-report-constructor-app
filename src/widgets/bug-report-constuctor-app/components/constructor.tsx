@@ -22,7 +22,7 @@ import {FieldComponent} from './field-component.tsx';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {buildBugReportDescription, OutputFormat} from '../tools/markdown.ts';
 import {copyToClipboard} from '../tools/clipboard.ts';
-import {OutputFormatsField} from './output-formats-field.tsx';
+import {OutputFormatsForm} from './output-formats-form.tsx';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -69,6 +69,7 @@ export const Constructor: React.FC = () => {
 
   const generatedDescriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [showGeneratedDescription, setShowGeneratedDescription] = useState(false);
 
   const [outputFormatsLoading, setOutputFormatsLoading] = useState(false);
   const [outputFormatsSaving, setOutputFormatsSaving] = useState(false);
@@ -323,15 +324,20 @@ export const Constructor: React.FC = () => {
     e.target.select();
   }, []);
 
+  const onToggleGeneratedDescription = useCallback(() => {
+    setShowGeneratedDescription(prev => !prev);
+  }, []);
+
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
-      <div className="constructorLayout">
-        <div className="constructorMain">
-          <div className="issueForm">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-6">
             <SummaryRow
               value={summary}
               onValueChange={setSummary}
               onRegisterInsertAtCursor={onRegisterSummaryInsert}
+              dropEnabled={activeDrag?.tab === 'summary'}
             />
 
             <PreconditionsRow
@@ -341,15 +347,16 @@ export const Constructor: React.FC = () => {
               onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
             />
 
-            <StepsConstructor steps={steps} onChangeSteps={setSteps} dropEnabled={stepsDropEnabled}/>
+            <StepsConstructor steps={steps} onChangeSteps={setSteps} dropEnabled={stepsDropEnabled} />
 
-            <div className="expectedActualGrid">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <FieldComponent label="Expected results" htmlFor="expected">
                 <textarea
                   id="expected"
                   rows={6}
                   value={expected}
                   onChange={onExpectedChange}
+                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
                 />
               </FieldComponent>
 
@@ -359,6 +366,7 @@ export const Constructor: React.FC = () => {
                   rows={6}
                   value={actual}
                   onChange={onActualChange}
+                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
                 />
               </FieldComponent>
             </div>
@@ -369,69 +377,87 @@ export const Constructor: React.FC = () => {
                 rows={6}
                 value={additionalInfo}
                 onChange={onAdditionalInfoChange}
+                className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
               />
-            </FieldComponent>
-
-            <OutputFormatsField
-              outputFormat={outputFormat}
-              setOutputFormat={setOutputFormat}
-              outputFormats={outputFormats}
-              setOutputFormats={setOutputFormats}
-              persistOutputFormats={persistOutputFormats}
-              loading={outputFormatsLoading}
-              saving={outputFormatsSaving}
-              error={outputFormatsError}
-              message={outputFormatsMessage}
-              showEditor={showFormatsEditor}
-              setShowEditor={setShowFormatsEditor}
-            />
-
-            <FieldComponent label="Generated description" htmlFor="generatedDescription">
-              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                <textarea
-                  id="generatedDescription"
-                  ref={generatedDescriptionRef}
-                  rows={14}
-                  readOnly
-                  value={description}
-                  onFocus={onGeneratedDescriptionFocus}
-                />
-                <div>
-                  <Button
-                    primary
-                    onClick={onCopyDescription}
-                  >
-                    Copy to clipboard
-                  </Button>
-                </div>
-
-                {copyStatus ? <div className="emptyHint">{copyStatus}</div> : null}
-              </div>
             </FieldComponent>
           </div>
         </div>
 
-        <SavedBlocksPanel
-          blocks={savedBlocks}
-          activeTab={activeTab}
-          onChangeTab={setActiveTab}
-          onChangeBlocks={setSavedBlocks}
-          onClickInsertSummary={insertSummaryChunk}
-          onClickInsertPreconditions={insertPreconditions}
-          onClickInsertStep={insertStep}
-          loading={blocksLoading}
-          saving={blocksSaving}
-          error={blocksError}
-          message={blocksMessage}
-          onLoad={loadSavedBlocks}
-          onSave={saveSavedBlocks}
-        />
+        <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:flex-none xl:w-[520px]">
+          <SavedBlocksPanel
+            blocks={savedBlocks}
+            activeTab={activeTab}
+            onChangeTab={setActiveTab}
+            onChangeBlocks={setSavedBlocks}
+            onClickInsertSummary={insertSummaryChunk}
+            onClickInsertPreconditions={insertPreconditions}
+            onClickInsertStep={insertStep}
+            loading={blocksLoading}
+            saving={blocksSaving}
+            error={blocksError}
+            message={blocksMessage}
+            onLoad={loadSavedBlocks}
+            onSave={saveSavedBlocks}
+          />
+
+          <OutputFormatsForm
+            outputFormat={outputFormat}
+            setOutputFormat={setOutputFormat}
+            outputFormats={outputFormats}
+            setOutputFormats={setOutputFormats}
+            persistOutputFormats={persistOutputFormats}
+            loading={outputFormatsLoading}
+            saving={outputFormatsSaving}
+            error={outputFormatsError}
+            message={outputFormatsMessage}
+            showEditor={showFormatsEditor}
+            setShowEditor={setShowFormatsEditor}
+          />
+
+          <FieldComponent label="Generated description" htmlFor="generatedDescription">
+            <div className="flex flex-col gap-2">
+              <div>
+                <Button onClick={onToggleGeneratedDescription}>
+                  {showGeneratedDescription ? 'Hide preview' : 'Show preview'}
+                </Button>
+              </div>
+
+              {showGeneratedDescription ? (
+                <>
+                  <textarea
+                    id="generatedDescription"
+                    ref={generatedDescriptionRef}
+                    rows={14}
+                    readOnly
+                    value={description}
+                    onFocus={onGeneratedDescriptionFocus}
+                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                  />
+                  <div>
+                    <Button
+                      primary
+                      onClick={onCopyDescription}
+                    >
+                      Copy to clipboard
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+
+              {copyStatus ? (
+                <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
+                  {copyStatus}
+                </div>
+              ) : null}
+            </div>
+          </FieldComponent>
+        </div>
       </div>
 
       <DragOverlay>
         {activeDrag ? (
-          <div className="savedBlock savedBlockOverlay">
-            <div className="savedBlockText">{activeDrag.text}</div>
+          <div className="w-[min(520px,calc(100vw-24px))] rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 shadow-lg">
+            <div className="whitespace-pre-wrap break-words text-[13px] leading-5">{activeDrag.text}</div>
           </div>
         ) : null}
       </DragOverlay>

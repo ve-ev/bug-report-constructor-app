@@ -120,44 +120,61 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({steps, onChan
 
   return (
     <FieldComponent label="Steps to reproduce">
-      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="fieldDropzonePadded">
-        <div className="constructorAddRow">
-          <textarea
-            id="issue-new-step"
-            className="fieldInput"
-            placeholder="Describe a step…"
-            value={newStep}
-            onChange={onNewStepChange}
-            rows={2}
-          />
-          <Button primary onClick={addStep} disabled={!canAdd}>
-            Add
-          </Button>
-        </div>
-
-        <div className={isOver ? 'dropList dropListActive stepsDropList' : 'dropList stepsDropList'}>
+      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="p-3">
+        <div className="flex flex-col gap-2">
           {steps.length ? (
-            <ol className="itemsList">
+            <ol className="flex flex-col gap-2">
               {steps.map((s, idx) => (
-                <li key={s.id} className="itemsListItem">
-                  <span className="itemsListText">{s.text}</span>
-                  <div className="itemsListActions">
-                    <Button inline disabled={idx === 0} data-index={idx} onClick={onMoveUpClick}>
-                      Up
-                    </Button>
-                    <Button inline disabled={idx >= steps.length - 1} data-index={idx} onClick={onMoveDownClick}>
-                      Down
-                    </Button>
-                    <Button inline data-index={idx} onClick={onRemoveClick}>
-                      Remove
-                    </Button>
+                <li
+                  key={s.id}
+                  className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-semibold opacity-70">Step {idx + 1}</div>
+                      <div className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-5">{s.text}</div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      <Button inline disabled={idx === 0} data-index={idx} onClick={onMoveUpClick}>
+                        Up
+                      </Button>
+                      <Button inline disabled={idx >= steps.length - 1} data-index={idx} onClick={onMoveDownClick}>
+                        Down
+                      </Button>
+                      <Button inline data-index={idx} onClick={onRemoveClick}>
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </li>
               ))}
             </ol>
           ) : (
-            <div className="emptyHint">{emptyHint}</div>
+            <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 text-[13px] opacity-70">
+              {emptyHint}
+            </div>
           )}
+
+          {/* Input block must be the last item in the list */}
+          <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
+            <div className="flex flex-col gap-2">
+              <div className="text-[12px] font-semibold opacity-70">New step</div>
+              <textarea
+                id="issue-new-step"
+                className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                placeholder="Describe a step…"
+                value={newStep}
+                onChange={onNewStepChange}
+                rows={2}
+              />
+              <div className="flex justify-end">
+                <Button primary onClick={addStep} disabled={!canAdd}>
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </FieldDropzone>
     </FieldComponent>

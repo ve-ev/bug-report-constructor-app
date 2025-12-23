@@ -27,13 +27,15 @@ export type SummaryRowProps = {
   onValueChange: (value: string) => void;
   placeholder?: string;
   onRegisterInsertAtCursor?: (fn: (text: string) => void) => void;
+  dropEnabled?: boolean;
 };
 
 export const SummaryRow: React.FC<SummaryRowProps> = ({
   value,
   onValueChange,
   placeholder = 'Click to add summary',
-  onRegisterInsertAtCursor
+  onRegisterInsertAtCursor,
+  dropEnabled = true
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -61,7 +63,8 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   } = useFrozenSelectionDnd({resolveElement: resolveInput, selectionTrackingEnabled: isEditing});
 
   const {isOver, setNodeRef} = useDroppable({
-    id: SUMMARY_DROP_ID
+    id: SUMMARY_DROP_ID,
+    disabled: !dropEnabled
   });
 
 
@@ -266,10 +269,17 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   );
 
   return (
-    <div ref={setNodeRef} className={isOver ? 'issueSummaryRow fieldDropzoneActive' : 'issueSummaryRow'}>
+    <div
+      ref={setNodeRef}
+      className={
+        isOver
+          ? 'rounded-md border-2 border-dashed border-sky-400 bg-sky-50/30 p-3 ring-2 ring-sky-300/30'
+          : 'rounded-md border-2 border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3'
+      }
+    >
       <EditableHeading
         level={Levels.H1}
-        size={Size.L}
+        size={Size.FULL}
         embedded
         isEditing={isEditing}
         onEdit={onEdit}
@@ -282,7 +292,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
       </EditableHeading>
 
       {/* prevents TS “unused state” while still making autosave observable in React DevTools */}
-      <span className="fieldAutosaveTick" aria-hidden>
+      <span className="hidden" aria-hidden>
         {autosaveTick ? '' : ''}
       </span>
     </div>

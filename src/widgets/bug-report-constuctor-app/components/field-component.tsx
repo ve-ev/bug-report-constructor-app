@@ -8,13 +8,13 @@ export type FieldProps = {
 
 export const FieldComponent: React.FC<FieldProps> = ({label, htmlFor, children}) => {
   return (
-    <div className="field">
+    <div className="flex flex-col gap-2">
       {htmlFor ? (
-        <label className="fieldLabel" htmlFor={htmlFor}>
+        <label className="text-[13px] font-semibold" htmlFor={htmlFor}>
           {label}
         </label>
       ) : (
-        <div className="fieldLabel">{label}</div>
+        <div className="text-[13px] font-semibold">{label}</div>
       )}
       {children}
     </div>
@@ -33,7 +33,11 @@ export const FieldDropzone: React.FC<FieldDropzoneProps> = ({isOver, setNodeRef,
   return (
     <div
       ref={setNodeRef}
-      className={isOver ? `fieldDropzone fieldDropzoneActive${extra}` : `fieldDropzone${extra}`}
+      className={
+        isOver
+          ? `rounded-md border-2 border-dashed border-sky-400 bg-sky-50/30 ring-2 ring-sky-300/30${extra}`
+          : `rounded-md border-2 border-dashed border-[var(--ring-borders-color)] bg-transparent${extra}`
+      }
     >
       {children}
     </div>
