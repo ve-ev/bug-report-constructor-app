@@ -3,7 +3,7 @@ import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
-import {getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
+import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
 
 export type PreconditionsRowProps = {
@@ -17,6 +17,15 @@ export type PreconditionsRowProps = {
 const DEFAULT_ROWS = 5;
 
 export const PRECONDITIONS_DROP_ID = 'issue-drop-preconditions';
+
+function normalizePreconditionsInsertForEditing(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .trim()
+    // Preconditions textarea is edited as free-form text; inserting saved blocks while typing
+    // should not introduce line breaks.
+    .replace(/\n+/g, ' ');
+}
 
 function appendLineIfNeeded(target: string, insert: string): string {
   const t = target;
@@ -68,7 +77,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
 
   const insertAtCursor = useCallback(
     (text: string) => {
-      const insertRaw = text.trim();
+      const insertRaw = normalizePreconditionsInsertForEditing(text);
       if (!insertRaw) {
         return;
       }
@@ -92,8 +101,11 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
       const fallback = selectionRef.current;
       const selection = getSelectionFromElement(el, fallback);
       const before = currentValue.slice(0, selection.start);
-      const needsLeadingNewline = !!before.trim() && !before.endsWith('\n');
-      const insert = needsLeadingNewline ? `\n${insertRaw}` : insertRaw;
+      const after = currentValue.slice(selection.end);
+
+      // Match Summary behavior: inserting a block into free-form text should keep words separated.
+      // Add spaces around the inserted chunk when needed.
+      const insert = addBoundarySpaces({before, insert: insertRaw, after});
 
       const {next, caret} = insertTextAtSelection(currentValue, selection, insert);
       onValueChange(next);

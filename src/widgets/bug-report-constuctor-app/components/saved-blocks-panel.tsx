@@ -17,6 +17,16 @@ interface DraggableBlockProps {
 
 const DRAGGING_OPACITY = 0.65;
 
+function isTextEditingTarget(el: Element | null): boolean {
+  if (!el) {
+    return false;
+  }
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  return (el as HTMLElement).isContentEditable;
+}
+
 function computeCanAdd(params: {newBlockText: string; isBusy: boolean}): boolean {
   return !!params.newBlockText.trim() && !params.isBusy;
 }
@@ -37,10 +47,20 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
   };
 
   const onSummaryButtonPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    // Keep focus in the Summary input (EditableHeading) while dragging/clicking summary chunks.
-    // Preventing default stops the button from stealing focus and triggering Summary `onBlur`.
-    e.preventDefault();
-    e.stopPropagation();
+    // Keep focus in the currently focused input/textarea while interacting with saved blocks.
+    // Preventing default stops the button from stealing focus and triggering field `onBlur`,
+    // but we must NOT stop propagation (dnd-kit listeners need this event to start dragging).
+    if (isTextEditingTarget(document.activeElement)) {
+      e.preventDefault();
+    }
+  }, []);
+
+  const onBlockPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    // Keep focus in the currently focused input/textarea while starting DnD.
+    // Otherwise selection may be lost and the drop would insert at the end.
+    if (isTextEditingTarget(document.activeElement)) {
+      e.preventDefault();
+    }
   }, []);
 
   const onSavedBlockActionPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
@@ -61,7 +81,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
         <button
           type="button"
           className="savedBlockButton"
-          onPointerDown={onSummaryButtonPointerDown}
+          onPointerDownCapture={onSummaryButtonPointerDown}
           {...listeners}
           onDoubleClick={onBlockDoubleClick}
           title="Double click to insert into Summary. Drag to insert at cursor."
@@ -90,6 +110,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
       className="savedBlock savedBlockDraggable"
       style={style}
       title="Double click to insert. Drag into a section."
+      onPointerDownCapture={onBlockPointerDown}
       {...attributes}
       {...listeners}
       onDoubleClick={onBlockDoubleClick}

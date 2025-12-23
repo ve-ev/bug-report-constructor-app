@@ -27,3 +27,19 @@ export function insertTextAtSelection(
   const next = `${before}${insert}${after}`;
   return {next, caret: selection.start + insert.length};
 }
+
+export function addBoundarySpaces(params: {
+  before: string;
+  insert: string;
+  after: string;
+}): string {
+  const {before, insert, after} = params;
+  if (!insert) {
+    return insert;
+  }
+
+  const needsLeadingSpace = !!before && !/\s$/.test(before);
+  const needsTrailingSpace = !!after && !/^\s/.test(after);
+
+  return `${needsLeadingSpace ? ' ' : ''}${insert}${needsTrailingSpace ? ' ' : ''}`;
+}

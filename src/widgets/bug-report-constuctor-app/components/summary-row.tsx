@@ -4,7 +4,7 @@ import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
-import {getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
+import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
 
 const SUMMARY_AUTOSAVE_MS = 650;
@@ -89,7 +89,11 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
       const fallback = selectionRef.current;
       const selection = getSelectionFromElement(el, fallback);
 
-      const {next, caret} = insertTextAtSelection(current, selection, clean);
+      const before = current.slice(0, selection.start);
+      const after = current.slice(selection.end);
+      const insert = addBoundarySpaces({before, insert: clean, after});
+
+      const {next, caret} = insertTextAtSelection(current, selection, insert);
       onValueChange(next);
 
       requestAnimationFrame(() => {
@@ -246,7 +250,11 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
       inputRef.current = el;
       const current = el.value;
       const selection = getSelectionFromElement(el, selectionRef.current);
-      const {next, caret} = insertTextAtSelection(current, selection, clean);
+      const before = current.slice(0, selection.start);
+      const after = current.slice(selection.end);
+      const insert = addBoundarySpaces({before, insert: clean, after});
+
+      const {next, caret} = insertTextAtSelection(current, selection, insert);
       onValueChange(next);
 
       requestAnimationFrame(() => {
