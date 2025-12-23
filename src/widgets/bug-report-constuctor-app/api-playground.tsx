@@ -103,7 +103,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
       setSummaryText(result.summary.join('\n'));
       setPreconditionsText(result.preconditions.join('\n'));
       setStepsText(result.steps.join('\n'));
-      setMessage('Loaded saved blocks.');
+      setMessage('Loaded saved blocks');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -127,7 +127,7 @@ export const ApiPlayground: React.FunctionComponent = () => {
       setSummaryText(refreshed.summary.join('\n'));
       setPreconditionsText(refreshed.preconditions.join('\n'));
       setStepsText(refreshed.steps.join('\n'));
-      setMessage('Saved and reloaded saved blocks.');
+      setMessage('Saved and reloaded saved blocks');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);

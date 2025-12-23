@@ -274,7 +274,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
             ))
           ) : (
             <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
-              No saved blocks yet.
+              No saved blocks yet
             </div>
           )}
         </div>

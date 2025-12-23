@@ -30,6 +30,8 @@ const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   steps: []
 };
 
+const BLOCK_MESSAGE_HIDE_MS = 1500;
+
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;
   if (active === 'markdown_default') {
@@ -55,6 +57,20 @@ export const Constructor: React.FC = () => {
   const [blocksSaving, setBlocksSaving] = useState(false);
   const [blocksError, setBlocksError] = useState<string | null>(null);
   const [blocksMessage, setBlocksMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let t: number | undefined;
+    if (blocksMessage) {
+      t = window.setTimeout(() => {
+        setBlocksMessage(null);
+      }, BLOCK_MESSAGE_HIDE_MS);
+    }
+    return () => {
+      if (t !== undefined) {
+        window.clearTimeout(t);
+      }
+    };
+  }, [blocksMessage]);
 
   const [savedBlocks, setSavedBlocks] = useState<SavedBlocks>(EMPTY_SAVED_BLOCKS);
   const [activeTab, setActiveTab] = useState<SavedBlocksTab>('summary');
@@ -84,6 +100,20 @@ export const Constructor: React.FC = () => {
   const [outputFormatsSaving, setOutputFormatsSaving] = useState(false);
   const [outputFormatsError, setOutputFormatsError] = useState<string | null>(null);
   const [outputFormatsMessage, setOutputFormatsMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let t: number | undefined;
+    if (outputFormatsMessage) {
+      t = window.setTimeout(() => {
+        setOutputFormatsMessage(null);
+      }, BLOCK_MESSAGE_HIDE_MS);
+    }
+    return () => {
+      if (t !== undefined) {
+        window.clearTimeout(t);
+      }
+    };
+  }, [outputFormatsMessage]);
 
   const [outputFormats, setOutputFormats] = useState<OutputFormatsPayload>({
     activeFormat: 'markdown_default',
@@ -197,7 +227,7 @@ export const Constructor: React.FC = () => {
     try {
       const saved = await api.setOutputFormats(next);
       setOutputFormats(saved);
-      setOutputFormatsMessage('Saved output formats.');
+      setOutputFormatsMessage('New output format is applied');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setOutputFormatsError(msg);
@@ -219,7 +249,14 @@ export const Constructor: React.FC = () => {
     try {
       const loaded = normalizeSavedBlocks(await api.getSavedBlocks());
       setSavedBlocks(loaded);
-      setBlocksMessage('Loaded saved blocks.');
+      const hasAny = !!(
+        loaded.summary.length ||
+        loaded.preconditions.length ||
+        loaded.steps.length
+      );
+      if (hasAny) {
+        setBlocksMessage('Loaded saved blocks');
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setBlocksError(msg);
@@ -245,7 +282,7 @@ export const Constructor: React.FC = () => {
       try {
         const saved = normalizeSavedBlocks(await api.setSavedBlocks(next));
         setSavedBlocks(saved);
-        setBlocksMessage(options?.successMessage ?? 'Saved blocks.');
+        setBlocksMessage(options?.successMessage ?? 'Saved blocks updated');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setBlocksError(msg);
@@ -305,7 +342,7 @@ export const Constructor: React.FC = () => {
       ...savedBlocks,
       preconditions: uniqAppend(savedBlocks.preconditions, items)
     };
-    await persistSavedBlocks(next, {successMessage: 'Saved Preconditions blocks.'});
+    await persistSavedBlocks(next, {successMessage: 'Saved preconditions to Saved Blocks'});
     setActiveTab('preconditions');
   }, [persistSavedBlocks, preconditions, savedBlocks, uniqAppend]);
 
@@ -319,7 +356,7 @@ export const Constructor: React.FC = () => {
         ...savedBlocks,
         summary: uniqAppend(savedBlocks.summary, [clean])
       };
-      await persistSavedBlocks(next, {successMessage: 'Saved Summary block.'});
+      await persistSavedBlocks(next, {successMessage: 'Saved summary block'});
       setActiveTab('summary');
     },
     [persistSavedBlocks, savedBlocks, uniqAppend]
@@ -335,7 +372,7 @@ export const Constructor: React.FC = () => {
         ...savedBlocks,
         preconditions: uniqAppend(savedBlocks.preconditions, [clean])
       };
-      await persistSavedBlocks(next, {successMessage: 'Saved Preconditions block.'});
+      await persistSavedBlocks(next, {successMessage: 'Saved preconditions block'});
       setActiveTab('preconditions');
     },
     [persistSavedBlocks, savedBlocks, uniqAppend]
@@ -355,7 +392,7 @@ export const Constructor: React.FC = () => {
       ...savedBlocks,
       steps: uniqAppend(savedBlocks.steps, [t])
     };
-    await persistSavedBlocks(next, {successMessage: 'Saved last added step block.'});
+    await persistSavedBlocks(next, {successMessage: 'Saved last added step to Saved Blocks'});
     setActiveTab('steps');
   }, [lastAddedStepText, persistSavedBlocks, savedBlocks, uniqAppend]);
 
@@ -450,13 +487,13 @@ export const Constructor: React.FC = () => {
     const result = await copyToClipboard(description);
 
     if (result === 'copied') {
-      setCopyStatus('Copied.');
+      setCopyStatus('Copied');
       return;
     }
 
     // Clipboard may be blocked by Permissions Policy in the host document.
     selectGeneratedDescription();
-    setCopyStatus('Clipboard is blocked. Text selected — press Ctrl/Cmd+C to copy.');
+    setCopyStatus('Clipboard is blocked. Text selected — press Ctrl/Cmd+C to copy');
   }, [description, selectGeneratedDescription]);
 
   const onExpectedChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {

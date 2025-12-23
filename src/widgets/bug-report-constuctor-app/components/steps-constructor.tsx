@@ -127,8 +127,8 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({
 
   const emptyHint = useMemo(() => {
     return dropEnabled
-      ? 'Drag blocks from the Steps tab here, or add one above.'
-      : 'Add steps above.';
+      ? 'Drag blocks from the Steps tab here, or add one above'
+      : 'Add steps above';
   }, [dropEnabled]);
 
   return (
