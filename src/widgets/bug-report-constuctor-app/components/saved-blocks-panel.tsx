@@ -4,6 +4,7 @@ import {PlusIcon, XMarkIcon} from '@heroicons/react/20/solid';
 
 import type {SavedBlocks} from '../types.ts';
 import {computeIsBusy, computeStatus} from '../tools/ui-state.ts';
+import {HoldToConfirmButton} from './hold-to-confirm-button.tsx';
 import {TwButton} from './tw-button.tsx';
 import {TwButtonGroup} from './tw-button-group.tsx';
 
@@ -285,9 +286,16 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <TwButton disabled={isBusy || !activeList.length} onClick={clearActiveGroup}>
+          <HoldToConfirmButton
+            variant="dangerGhost"
+            disabled={isBusy || !activeList.length}
+            holdMs={1500}
+            onHoldComplete={clearActiveGroup}
+            title="Hold for 1.5 seconds to delete"
+            aria-label="Delete all in group (hold for 1.5 seconds)"
+          >
             Delete all in group
-          </TwButton>
+          </HoldToConfirmButton>
         </div>
 
         {showStatus ? <div className={statusClassName}>{statusText}</div> : null}
