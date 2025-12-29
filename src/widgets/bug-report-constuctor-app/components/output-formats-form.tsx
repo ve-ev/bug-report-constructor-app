@@ -1,5 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
+import {PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon} from '@heroicons/react/20/solid';
+
+import {TwButton} from './tw-button.tsx';
 
 import type {OutputFormatsPayload} from '../types.ts';
 import type {OutputFormat} from '../tools/markdown.ts';
@@ -152,7 +154,7 @@ const OutputFormatsSelect: React.FC<{
         disabled={disabled}
         onClick={onToggle}
         onKeyDown={onKeyDown}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-left text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-left text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60 disabled:opacity-60"
       >
         <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
         <span className="shrink-0 opacity-70" aria-hidden="true">
@@ -183,8 +185,8 @@ const OutputFormatsSelect: React.FC<{
                 onClick={onItemClick}
                 className={
                   item.id === outputFormat
-                    ? 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-sky-50/40'
-                    : 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-black/5'
+                    ? 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[rgba(236,72,153,0.12)]'
+                    : 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[rgba(236,72,153,0.10)]'
                 }
               >
                 {item.label}
@@ -207,24 +209,29 @@ const OutputFormatsActions: React.FC<{
 }> = props => {
   const {loading, saving, showEditor, onToggleEditor, onAddCustomFormat, onSave} = props;
 
-  return (
+  return showEditor ? (
     <>
-      <Button onClick={onToggleEditor} disabled={loading}>
-        {showEditor ? 'Hide editor' : 'Edit / add'}
-      </Button>
+      <TwButton
+        onClick={onAddCustomFormat}
+        disabled={loading || saving}
+        aria-label="Add custom format"
+        title="Add custom format"
+      >
+        <PlusIcon className="h-4 w-4"/>
+      </TwButton>
 
-      {showEditor ? (
-        <>
-          <Button onClick={onAddCustomFormat} disabled={loading || saving}>
-            Add custom format
-          </Button>
+      <TwButton variant="primary" onClick={onSave} disabled={loading || saving}>
+        Save
+      </TwButton>
 
-          <Button onClick={onSave} disabled={loading || saving}>
-            Save
-          </Button>
-        </>
-      ) : null}
+      <TwButton onClick={onToggleEditor} disabled={loading} aria-label="Hide editor" title="Hide editor">
+        <XMarkIcon className="h-4 w-4"/>
+      </TwButton>
     </>
+  ) : (
+    <TwButton onClick={onToggleEditor} disabled={loading} aria-label="Edit / add" title="Edit / add">
+      <PencilSquareIcon className="h-4 w-4"/>
+    </TwButton>
   );
 };
 
@@ -296,7 +303,7 @@ const CustomFormatsEditor: React.FC<{
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-md border border-sky-300 bg-sky-50/40 px-3 py-2 text-[13px] text-sky-950">
+      <div className="rounded-md border border-pink-400/40 bg-[rgba(236,72,153,0.08)] px-3 py-2 text-[13px] text-[var(--ring-text-color)]">
         <span className="font-semibold">Placeholders:</span>{' '}
         {PLACEHOLDERS.map((p, idx) => (
           <React.Fragment key={p}>
@@ -318,18 +325,25 @@ const CustomFormatsEditor: React.FC<{
                   data-format-id={f.id}
                   value={f.name}
                   onChange={onCustomFormatNameChange}
-                  className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                  className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
                 />
-                <Button data-format-id={f.id} onClick={onCustomFormatDeleteClick}>
-                  Delete
-                </Button>
+                <TwButton
+                  size="xs"
+                  variant="dangerGhost"
+                  data-format-id={f.id}
+                  onClick={onCustomFormatDeleteClick}
+                  aria-label="Delete custom format"
+                  title="Delete"
+                >
+                  <TrashIcon className="h-4 w-4"/>
+                </TwButton>
               </div>
               <textarea
                 rows={8}
                 data-format-id={f.id}
                 value={f.template}
                 onChange={onCustomFormatTemplateChange}
-                className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
               />
             </div>
           ))}

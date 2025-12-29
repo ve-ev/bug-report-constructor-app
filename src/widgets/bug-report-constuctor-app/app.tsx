@@ -1,6 +1,6 @@
 import React, {memo, useCallback} from 'react';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {Constructor} from './components/constructor.tsx';
+import {TwButton} from './components/tw-button.tsx';
 
 const AppComponent: React.FunctionComponent = () => {
   const resetRef = React.useRef<(() => void) | null>(null);
@@ -16,9 +16,9 @@ const AppComponent: React.FunctionComponent = () => {
   return (
     <div className="widget">
       <div className="topBar">
-        <Button onClick={onResetForm}>
+        <TwButton onClick={onResetForm}>
           Reset form
-        </Button>
+        </TwButton>
       </div>
 
       <Constructor onRegisterReset={onRegisterReset}/>

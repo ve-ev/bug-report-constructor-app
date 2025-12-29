@@ -1,11 +1,11 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
 import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
+import {TwButton} from './tw-button.tsx';
 
 export type PreconditionsRowProps = {
   dropEnabled: boolean;
@@ -228,21 +228,22 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
       <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="relative p-3">
         {selectedText.trim() ? (
           <div className="absolute right-2 top-2 z-10">
-            <Button
-              inline
+            <TwButton
+              size="xs"
+              variant="ghost"
               onPointerDown={onSaveSelectionPointerDown}
               onClick={onSaveSelectionClick}
               disabled={!onSaveSelection}
               title="Save selected text to Saved Blocks"
             >
               Save selection
-            </Button>
+            </TwButton>
           </div>
         ) : null}
         <textarea
           id="issue-preconditions"
           ref={textareaRef}
-          className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+          className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
           placeholder="Drop Preconditions blocks here or type them…"
           value={value}
           onChange={onChange}

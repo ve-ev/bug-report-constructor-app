@@ -19,11 +19,11 @@ import {StepItem, StepsConstructor, STEPS_DROP_ID} from './steps-constructor.tsx
 import {createId} from '../tools/id.ts';
 import {normalizeSavedBlocks} from '../utils/saved-blocks-utils.ts';
 import {FieldComponent} from './field-component.tsx';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {buildBugReportDescription, OutputFormat} from '../tools/markdown.ts';
 import {copyToClipboard} from '../tools/clipboard.ts';
 import {OutputFormatsForm} from './output-formats-form.tsx';
 import {computeAdaptiveFields} from '../utils/template-ui.ts';
+import {TwButton} from './tw-button.tsx';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -562,9 +562,9 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                 />
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
+                  <TwButton disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
                     Save Preconditions to Saved Blocks
-                  </Button>
+                  </TwButton>
                 </div>
               </>
             ) : null}
@@ -581,9 +581,9 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                 />
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button disabled={!lastAddedStepText?.trim()} onClick={saveLastStepToSavedBlocks}>
+                  <TwButton disabled={!lastAddedStepText?.trim()} onClick={saveLastStepToSavedBlocks}>
                     Save last added step to Saved Blocks
-                  </Button>
+                  </TwButton>
                 </div>
               </>
             ) : null}
@@ -596,7 +596,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                     rows={6}
                     value={expected}
                     onChange={onExpectedChange}
-                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
                   />
                 </FieldComponent>
               ) : null}
@@ -608,7 +608,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                     rows={6}
                     value={actual}
                     onChange={onActualChange}
-                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
                   />
                 </FieldComponent>
               ) : null}
@@ -621,7 +621,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                   rows={6}
                   value={additionalInfo}
                   onChange={onAdditionalInfoChange}
-                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
                 />
               </FieldComponent>
             ) : null}
@@ -643,63 +643,69 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
             message={blocksMessage}
           />
 
-          <OutputFormatsForm
-            outputFormat={outputFormat}
-            setOutputFormat={setOutputFormat}
-            outputFormats={outputFormats}
-            setOutputFormats={setOutputFormats}
-            persistOutputFormats={persistOutputFormats}
-            loading={outputFormatsLoading}
-            saving={outputFormatsSaving}
-            error={outputFormatsError}
-            message={outputFormatsMessage}
-            showEditor={showFormatsEditor}
-            setShowEditor={setShowFormatsEditor}
-          />
-
-          <FieldComponent label="Generated description" htmlFor="generatedDescription">
-            <div className="flex flex-col gap-2">
-              <div>
-                <Button onClick={onToggleGeneratedDescription}>
-                  {showGeneratedDescription ? 'Hide preview' : 'Show preview'}
-                </Button>
-              </div>
-
-              {showGeneratedDescription ? (
-                <>
-                  <textarea
-                    id="generatedDescription"
-                    ref={generatedDescriptionRef}
-                    rows={14}
-                    readOnly
-                    value={description}
-                    onFocus={onGeneratedDescriptionFocus}
-                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
-                  />
-                  <div>
-                    <Button
-                      primary
-                      onClick={onCopyDescription}
-                    >
-                      Copy to clipboard
-                    </Button>
-                  </div>
-                </>
-              ) : null}
-
-              {copyStatus ? (
-                <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
-                  {copyStatus}
-                </div>
-              ) : null}
+          <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)]">
+            <div className="border-b border-[var(--ring-borders-color)] p-3">
+              <OutputFormatsForm
+                outputFormat={outputFormat}
+                setOutputFormat={setOutputFormat}
+                outputFormats={outputFormats}
+                setOutputFormats={setOutputFormats}
+                persistOutputFormats={persistOutputFormats}
+                loading={outputFormatsLoading}
+                saving={outputFormatsSaving}
+                error={outputFormatsError}
+                message={outputFormatsMessage}
+                showEditor={showFormatsEditor}
+                setShowEditor={setShowFormatsEditor}
+              />
             </div>
-          </FieldComponent>
+
+            <div className="p-3">
+              <FieldComponent label="Generated description" htmlFor="generatedDescription">
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <TwButton onClick={onToggleGeneratedDescription}>
+                      {showGeneratedDescription ? 'Hide preview' : 'Show preview'}
+                    </TwButton>
+                  </div>
+
+                  {showGeneratedDescription ? (
+                    <>
+                      <textarea
+                        id="generatedDescription"
+                        ref={generatedDescriptionRef}
+                        rows={14}
+                        readOnly
+                        value={description}
+                        onFocus={onGeneratedDescriptionFocus}
+                        className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                      />
+                      <div>
+                        <TwButton variant="primary" onClick={onCopyDescription}>
+                          Copy to clipboard
+                        </TwButton>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {copyStatus ? (
+                    <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
+                      {copyStatus}
+                    </div>
+                  ) : null}
+                </div>
+              </FieldComponent>
+            </div>
+          </div>
         </div>
       </div>
 
       <DragOverlay>
         {activeDrag ? (
-          <div className="w-[min(520px,calc(100vw-24px))] rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 shadow-lg">
+          <div
+            className="w-[min(520px,calc(100vw-24px))] rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 shadow-lg"
+            style={{background: 'color-mix(in srgb, var(--ring-content-background-color) 92%, transparent)'}}
+          >
             <div className="whitespace-pre-wrap break-words text-[13px] leading-5">{activeDrag.text}</div>
           </div>
         ) : null}

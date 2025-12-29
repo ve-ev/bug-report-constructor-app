@@ -1,9 +1,10 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
+import {ChevronDownIcon, ChevronUpIcon, PlusIcon, XMarkIcon} from '@heroicons/react/20/solid';
 import {useDroppable} from '@dnd-kit/core';
 
 import {FieldDropzone, FieldComponent} from './field-component.tsx';
 import {createId} from '../tools/id.ts';
+import {TwButton} from './tw-button.tsx';
 
 export const STEPS_DROP_ID = 'issue-drop-steps';
 
@@ -152,20 +153,38 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({
                       </div>
 
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                        <Button inline disabled={idx === 0} data-index={idx} onClick={onMoveUpClick}>
-                          Up
-                        </Button>
-                        <Button
-                          inline
+                        <TwButton
+                          size="xs"
+                          variant="ghost"
+                          disabled={idx === 0}
+                          data-index={idx}
+                          onClick={onMoveUpClick}
+                          aria-label="Move step up"
+                          title="Move up"
+                        >
+                          <ChevronUpIcon className="h-4 w-4"/>
+                        </TwButton>
+                        <TwButton
+                          size="xs"
+                          variant="ghost"
                           disabled={idx >= steps.length - 1}
                           data-index={idx}
                           onClick={onMoveDownClick}
+                          aria-label="Move step down"
+                          title="Move down"
                         >
-                          Down
-                        </Button>
-                        <Button inline data-index={idx} onClick={onRemoveClick}>
-                          Remove
-                        </Button>
+                          <ChevronDownIcon className="h-4 w-4"/>
+                        </TwButton>
+                        <TwButton
+                          size="xs"
+                          variant="dangerGhost"
+                          data-index={idx}
+                          onClick={onRemoveClick}
+                          aria-label="Remove step"
+                          title="Remove"
+                        >
+                          <XMarkIcon className="h-4 w-4"/>
+                        </TwButton>
                       </div>
                     </div>
                   </li>
@@ -181,18 +200,24 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({
             <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
               <div className="flex flex-col gap-2">
                 <div className="text-[12px] font-semibold opacity-70">New step</div>
-                <textarea
-                  id="issue-new-step"
-                  className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
-                  placeholder="Describe a step…"
-                  value={newStep}
-                  onChange={onNewStepChange}
-                  rows={2}
-                />
-                <div className="flex justify-end">
-                  <Button primary onClick={addStep} disabled={!canAdd}>
-                    Add
-                  </Button>
+                <div className="flex items-end gap-2">
+                  <textarea
+                    id="issue-new-step"
+                    className="h-10 min-w-0 flex-1 resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                    placeholder="Describe a step…"
+                    value={newStep}
+                    onChange={onNewStepChange}
+                    rows={1}
+                  />
+                  <TwButton
+                    variant="primary"
+                    onClick={addStep}
+                    disabled={!canAdd}
+                    aria-label="Add step"
+                    title="Add step"
+                  >
+                    <PlusIcon className="h-4 w-4"/>
+                  </TwButton>
                 </div>
               </div>
             </div>

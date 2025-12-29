@@ -1,12 +1,12 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {EditableHeading, Levels, Size} from '@jetbrains/ring-ui-built/components/editable-heading/editable-heading';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
 import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
 import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
+import {TwButton} from './tw-button.tsx';
 
 const SUMMARY_AUTOSAVE_MS = 650;
 
@@ -331,22 +331,23 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
     >
       {isEditing && selectedText.trim() ? (
         <div className="absolute right-2 top-2 z-10">
-          <Button
-            inline
+          <TwButton
+            size="xs"
+            variant="ghost"
             onPointerDown={onSaveSelectionPointerDown}
             onClick={onSaveSelectionClick}
             disabled={!onSaveSelection}
             title="Save selected text to Saved Blocks"
           >
             Save selection
-          </Button>
+          </TwButton>
         </div>
       ) : null}
 
       <div
         className={
           isOver
-            ? 'rounded-md border-2 border-dashed border-sky-400 bg-sky-50/30 p-3 ring-2 ring-sky-300/30'
+            ? 'rounded-md border-2 border-dashed border-pink-400 bg-[rgba(236,72,153,0.08)] p-3 ring-2 ring-pink-300/30'
             : 'rounded-md border-2 border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3'
         }
       >

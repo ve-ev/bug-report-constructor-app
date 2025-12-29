@@ -35,7 +35,7 @@ export const FieldDropzone: React.FC<FieldDropzoneProps> = ({isOver, setNodeRef,
       ref={setNodeRef}
       className={
         isOver
-          ? `rounded-md border-2 border-dashed border-sky-400 bg-sky-50/30 ring-2 ring-sky-300/30${extra}`
+          ? `rounded-md border-2 border-dashed border-pink-400 bg-[rgba(236,72,153,0.08)] ring-2 ring-pink-300/30${extra}`
           : `rounded-md border-2 border-dashed border-[var(--ring-borders-color)] bg-transparent${extra}`
       }
     >

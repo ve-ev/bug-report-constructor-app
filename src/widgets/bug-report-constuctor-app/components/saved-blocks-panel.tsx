@@ -1,9 +1,11 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {useDraggable} from '@dnd-kit/core';
+import {PlusIcon, XMarkIcon} from '@heroicons/react/20/solid';
 
 import type {SavedBlocks} from '../types.ts';
 import {computeIsBusy, computeStatus} from '../tools/ui-state.ts';
+import {TwButton} from './tw-button.tsx';
+import {TwButtonGroup} from './tw-button-group.tsx';
 
 export type SavedBlocksTab = keyof SavedBlocks;
 
@@ -79,13 +81,13 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
     return (
       <div
         ref={setNodeRef}
-        className="flex items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2"
+        className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(236,72,153,0.10)] active:cursor-grabbing active:bg-[rgba(236,72,153,0.18)]"
         style={style}
         {...attributes}
       >
         <button
           type="button"
-          className="min-w-0 flex-1 rounded px-2 py-1 text-left text-[13px] leading-5 hover:bg-black/5"
+          className="min-w-0 flex-1 rounded px-2 py-1 text-left text-[13px] leading-5"
           onPointerDownCapture={onSummaryButtonPointerDown}
           {...listeners}
           onDoubleClick={onBlockDoubleClick}
@@ -95,15 +97,17 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
         </button>
 
         <div className="shrink-0">
-          <Button
-            inline
+          <TwButton
+            size="xs"
+            variant="dangerGhost"
             onPointerDown={onSavedBlockActionPointerDown}
             onClick={onRemoveClick}
             title="Remove block"
             disabled={!onRemove}
+            aria-label="Remove block"
           >
-            Remove
-          </Button>
+            <XMarkIcon className="h-4 w-4"/>
+          </TwButton>
         </div>
       </div>
     );
@@ -112,7 +116,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
   return (
     <div
       ref={setNodeRef}
-      className="flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 active:cursor-grabbing"
+      className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(236,72,153,0.10)] active:cursor-grabbing active:bg-[rgba(236,72,153,0.18)]"
       style={style}
       title="Double click to insert. Drag into a section."
       onPointerDownCapture={onBlockPointerDown}
@@ -123,15 +127,17 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
       <div className="min-w-0 flex-1 whitespace-pre-wrap break-words px-2 py-1 text-[13px] leading-5">{text}</div>
 
       <div className="shrink-0">
-        <Button
-          inline
+        <TwButton
+          size="xs"
+          variant="dangerGhost"
           onPointerDown={onSavedBlockActionPointerDown}
           onClick={onRemoveClick}
           title="Remove block"
           disabled={!onRemove}
+          aria-label="Remove block"
         >
-          Remove
-        </Button>
+          <XMarkIcon className="h-4 w-4"/>
+        </TwButton>
       </div>
     </div>
   );
@@ -219,16 +225,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
     [activeList, activeTab, blocks, onChangeBlocks]
   );
 
-  const onTabClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      const raw = (e.currentTarget as HTMLElement).dataset.tab;
-      if (!raw) {
-        return;
-      }
-      onChangeTab(raw as SavedBlocksTab);
-    },
-    [onChangeTab]
-  );
+  const onTabChange = useCallback((next: SavedBlocksTab) => onChangeTab(next), [onChangeTab]);
 
   const onChangeNewBlockText = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setNewBlockText(e.target.value);
@@ -245,17 +242,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
       <div className="flex flex-col gap-2 border-b border-[var(--ring-borders-color)] p-3">
         <div className="text-[13px] font-semibold">Saved Blocks</div>
         <div className="flex flex-wrap gap-2">
-          {tabButtons.map(t => (
-            <Button
-              key={t.id}
-              primary={t.id === activeTab}
-              data-tab={t.id}
-              onClick={onTabClick}
-              disabled={isBusy}
-            >
-              {t.label}
-            </Button>
-          ))}
+          <TwButtonGroup items={tabButtons} value={activeTab} onChange={onTabChange} disabled={isBusy}/>
         </div>
       </div>
 
@@ -281,20 +268,26 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
 
         <div className="flex gap-2">
           <input
-            className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-sky-400/60"
+            className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
             value={newBlockText}
             onChange={onChangeNewBlockText}
             placeholder="New block…"
           />
-          <Button primary onClick={addBlock} disabled={!canAdd}>
-            Add
-          </Button>
+          <TwButton
+            variant="primary"
+            onClick={addBlock}
+            disabled={!canAdd}
+            aria-label="Add block"
+            title="Add block"
+          >
+            <PlusIcon className="h-4 w-4"/>
+          </TwButton>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy || !activeList.length} onClick={clearActiveGroup}>
+          <TwButton disabled={isBusy || !activeList.length} onClick={clearActiveGroup}>
             Delete all in group
-          </Button>
+          </TwButton>
         </div>
 
         {showStatus ? <div className={statusClassName}>{statusText}</div> : null}

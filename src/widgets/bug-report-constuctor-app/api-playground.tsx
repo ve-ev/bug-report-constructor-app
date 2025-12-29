@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import Button from '@jetbrains/ring-ui-built/components/button/button';
+import {TwButton} from './components/tw-button.tsx';
 import {API} from './api.ts';
 import {SavedBlocks} from './types.ts';
 import {normalizeSavedBlocks} from './utils/saved-blocks-utils.ts';
@@ -200,15 +200,15 @@ export const ApiPlayground: React.FunctionComponent = () => {
       </div>
 
       <div className="actions">
-        <Button primary disabled={!canCallApi} onClick={load}>
+        <TwButton variant="primary" disabled={!canCallApi} onClick={load}>
           {loadTitle}
-        </Button>
-        <Button primary disabled={!canCallApi} onClick={save}>
+        </TwButton>
+        <TwButton variant="primary" disabled={!canCallApi} onClick={save}>
           {saveTitle}
-        </Button>
-        <Button disabled={isBusy} onClick={resetForm}>
+        </TwButton>
+        <TwButton disabled={isBusy} onClick={resetForm}>
           {'Reset form'}
-        </Button>
+        </TwButton>
       </div>
 
       {showStatus ? <div className={statusClassName}>{statusText}</div> : null}

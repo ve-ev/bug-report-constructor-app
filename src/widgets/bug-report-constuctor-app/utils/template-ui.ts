@@ -38,63 +38,21 @@ const PLACEHOLDER_GROUPS: Record<AdaptiveFieldKey, string[]> = {
   additionalInfo: ['additionalInfo']
 };
 
-function extractHeaderTitle(line: string): string | null {
-  // Accept markdown ATX headings: # Title, ## Title, ...
-  const m = /^(#{1,6})\s+(.+?)\s*$/.exec(line.trim());
-  if (!m) {
-    return null;
-  }
-  // Keep punctuation as-is (e.g., "Steps to reproduce:")
-  const raw = m[2].trim();
-  if (!raw) {
-    return null;
-  }
-  // Trim trailing hashes if user wrote "## Title ##"
-  return raw.replace(/\s+#+\s*$/, '').trim();
+const HEADER_TITLE_GROUP_INDEX = 2;
+
+function buildConfigAllVisible(labels: Record<AdaptiveFieldKey, string>): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
+  return {
+    summary: {visible: true, label: labels.summary},
+    preconditions: {visible: true, label: labels.preconditions},
+    steps: {visible: true, label: labels.steps},
+    expected: {visible: true, label: labels.expected},
+    actual: {visible: true, label: labels.actual},
+    additionalInfo: {visible: true, label: labels.additionalInfo}
+  };
 }
 
-function extractPlaceholders(template: string): string[] {
-  const out: string[] = [];
-  const re = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(template)) !== null) {
-    out.push(m[1]);
-  }
-  return out;
-}
-
-export function computeAdaptiveFields(opts: {
-  format: string;
-  template?: string;
-}): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
-  const {format} = opts;
-
-  if (format === 'markdown_default') {
-    return {
-      summary: {visible: true, label: DEFAULT_LABELS.summary},
-      preconditions: {visible: true, label: DEFAULT_LABELS.preconditions},
-      steps: {visible: true, label: DEFAULT_LABELS.steps},
-      expected: {visible: true, label: DEFAULT_LABELS.expected},
-      actual: {visible: true, label: DEFAULT_LABELS.actual},
-      additionalInfo: {visible: true, label: DEFAULT_LABELS.additionalInfo}
-    };
-  }
-
-  const template = opts.template ?? '';
-  const hasTemplate = Boolean(template.trim());
-
-  // No custom template: keep the UI usable and consistent with markdown.ts fallback.
-  if (!hasTemplate) {
-    return {
-      summary: {visible: true, label: FALLBACK_CUSTOM_LABELS.summary},
-      preconditions: {visible: true, label: FALLBACK_CUSTOM_LABELS.preconditions},
-      steps: {visible: true, label: FALLBACK_CUSTOM_LABELS.steps},
-      expected: {visible: true, label: FALLBACK_CUSTOM_LABELS.expected},
-      actual: {visible: true, label: FALLBACK_CUSTOM_LABELS.actual},
-      additionalInfo: {visible: true, label: FALLBACK_CUSTOM_LABELS.additionalInfo}
-    };
-  }
-
+// eslint-disable-next-line complexity
+function buildConfigFromTemplate(template: string): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
   const placeholders = extractPlaceholders(template);
   const placeholderSet = new Set(placeholders);
 
@@ -136,4 +94,50 @@ export function computeAdaptiveFields(opts: {
   }
 
   return cfg;
+}
+
+function extractHeaderTitle(line: string): string | null {
+  // Accept markdown ATX headings: # Title, ## Title, ...
+  const m = /^(#{1,6})\s+(.+?)\s*$/.exec(line.trim());
+  if (!m) {
+    return null;
+  }
+  // Keep punctuation as-is (e.g., "Steps to reproduce:")
+  const raw = m[HEADER_TITLE_GROUP_INDEX].trim();
+  if (!raw) {
+    return null;
+  }
+  // Trim trailing hashes if user wrote "## Title ##"
+  return raw.replace(/\s+#+\s*$/, '').trim();
+}
+
+function extractPlaceholders(template: string): string[] {
+  const out: string[] = [];
+  const re = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(template)) !== null) {
+    out.push(m[1]);
+  }
+  return out;
+}
+
+export function computeAdaptiveFields(opts: {
+  format: string;
+  template?: string;
+}): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
+  const {format} = opts;
+
+  if (format === 'markdown_default') {
+    return buildConfigAllVisible(DEFAULT_LABELS);
+  }
+
+  const template = opts.template ?? '';
+  const hasTemplate = Boolean(template.trim());
+
+  // No custom template: keep the UI usable and consistent with markdown.ts fallback.
+  if (!hasTemplate) {
+    return buildConfigAllVisible(FALLBACK_CUSTOM_LABELS);
+  }
+
+  return buildConfigFromTemplate(template);
 }
