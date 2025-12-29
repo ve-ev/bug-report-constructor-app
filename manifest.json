@@ -1,5 +1,5 @@
 {
-  "name": "bug-report-constructor-app",
+  "name": "brc-app",
   "title": "Bug Report Constructor",
   "description": "",
   "$schema": "https://json.schemastore.org/youtrack-app.json",
@@ -11,11 +11,11 @@
   "widgets": [
 
     {
-      "key": "bug-report-constuctor-app",
-      "name": "Bug-Report-Constuctor-App",
-      "indexPath": "bug-report-constuctor-app/index.html",
+      "key": "constructor",
+      "name": "Bug Report Constructor",
+      "indexPath": "bug-report-constructor-app/index.html",
       "extensionPoint": "MAIN_MENU_ITEM",
-      "iconPath": "bug-report-constuctor-app/widget-icon.svg",
+      "iconPath": "bug-report-constructor-app/widget-icon.svg",
       "description": ""
     }
   ]

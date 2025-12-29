@@ -49,7 +49,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         // List every widget entry point here
-        bugReportConstuctorApp: resolve(__dirname, 'src/widgets/bug-report-constuctor-app/index.html'),
+        bugReportConstructorApp: resolve(__dirname, 'src/widgets/bug-report-constructor-app/index.html'),
 
       }
     }

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import {cx} from './tw-utils.ts';
 
@@ -14,4 +15,8 @@ export const TwTextarea: React.FC<TwTextareaProps> = ({className, ...rest}) => {
       {...rest}
     />
   );
+};
+
+TwTextarea.propTypes = {
+  className: PropTypes.string
 };

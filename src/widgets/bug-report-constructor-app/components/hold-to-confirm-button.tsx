@@ -10,6 +10,8 @@ export interface HoldToConfirmButtonProps
 }
 
 const DEFAULT_HOLD_MS = 1500;
+const TOOLTIP_TRANSIENT_HIDE_MS = 2500;
+const PROGRESS_PERCENT_MAX = 100;
 
 export const HoldToConfirmButton: React.FC<HoldToConfirmButtonProps> = props => {
   const {
@@ -62,7 +64,7 @@ export const HoldToConfirmButton: React.FC<HoldToConfirmButtonProps> = props => 
     tooltipTimeoutRef.current = window.setTimeout(() => {
       tooltipTimeoutRef.current = null;
       setShowTooltip(false);
-    }, 2500);
+    }, TOOLTIP_TRANSIENT_HIDE_MS);
   }, [title]);
 
   const tick = useCallback(() => {
@@ -133,14 +135,14 @@ export const HoldToConfirmButton: React.FC<HoldToConfirmButtonProps> = props => 
   );
 
   const onPointerUp = useCallback(
-    (_e: React.PointerEvent<HTMLButtonElement>) => {
+    () => {
       stopHold();
     },
     [stopHold]
   );
 
   const onPointerCancel = useCallback(
-    (_e: React.PointerEvent<HTMLButtonElement>) => {
+    () => {
       stopHold();
     },
     [stopHold]
@@ -174,7 +176,7 @@ export const HoldToConfirmButton: React.FC<HoldToConfirmButtonProps> = props => 
 
   const progressStyle = useMemo<React.CSSProperties>(() => {
     return {
-      width: `${Math.round(progress * 100)}%`
+      width: `${Math.round(progress * PROGRESS_PERCENT_MAX)}%`
     };
   }, [progress]);
 

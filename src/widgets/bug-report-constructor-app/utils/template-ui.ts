@@ -38,6 +38,8 @@ const PLACEHOLDER_GROUPS: Record<AdaptiveFieldKey, string[]> = {
   additionalInfo: ['additionalInfo']
 };
 
+const ADAPTIVE_FIELD_KEYS = Object.keys(PLACEHOLDER_GROUPS) as AdaptiveFieldKey[];
+
 const HEADER_TITLE_GROUP_INDEX = 2;
 
 function buildConfigAllVisible(labels: Record<AdaptiveFieldKey, string>): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
@@ -51,15 +53,25 @@ function buildConfigAllVisible(labels: Record<AdaptiveFieldKey, string>): Record
   };
 }
 
-// eslint-disable-next-line complexity
-function buildConfigFromTemplate(template: string): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
-  const placeholders = extractPlaceholders(template);
-  const placeholderSet = new Set(placeholders);
+function lineHasPlaceholder(line: string, placeholder: string): boolean {
+  return line.includes(`{{${placeholder}}}`) || line.includes(`{{ ${placeholder} }}`);
+}
 
+function detectFieldKeysInLine(line: string): AdaptiveFieldKey[] {
+  const keys: AdaptiveFieldKey[] = [];
+  for (const key of ADAPTIVE_FIELD_KEYS) {
+    const group = PLACEHOLDER_GROUPS[key];
+    if (group.some(ph => lineHasPlaceholder(line, ph))) {
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+function collectCustomLabelsByKeyFromTemplateLines(lines: string[]): Partial<Record<AdaptiveFieldKey, string>> {
   const labelByKey: Partial<Record<AdaptiveFieldKey, string>> = {};
-  const lines = template.split(/\r?\n/);
-  let currentHeader: string | null = null;
 
+  let currentHeader: string | null = null;
   for (const line of lines) {
     const header = extractHeaderTitle(line);
     if (header) {
@@ -72,23 +84,36 @@ function buildConfigFromTemplate(template: string): Record<AdaptiveFieldKey, Ada
       continue;
     }
 
-    for (const key of Object.keys(PLACEHOLDER_GROUPS) as AdaptiveFieldKey[]) {
-      if (labelByKey[key]) {
-        continue;
-      }
-      const group = PLACEHOLDER_GROUPS[key];
-      if (group.some(ph => line.includes(`{{${ph}}}`) || line.includes(`{{ ${ph} }}`))) {
+    const keysInLine = detectFieldKeysInLine(line);
+    for (const key of keysInLine) {
+      if (!labelByKey[key]) {
         labelByKey[key] = currentHeader;
       }
     }
   }
 
-  const cfg = {} as Record<AdaptiveFieldKey, AdaptiveFieldConfig>;
-  for (const key of Object.keys(PLACEHOLDER_GROUPS) as AdaptiveFieldKey[]) {
+  return labelByKey;
+}
+
+function buildVisibilityByKey(placeholderSet: Set<string>): Record<AdaptiveFieldKey, boolean> {
+  const visibleByKey = {} as Record<AdaptiveFieldKey, boolean>;
+  for (const key of ADAPTIVE_FIELD_KEYS) {
     const group = PLACEHOLDER_GROUPS[key];
-    const visible = key === 'summary' ? true : group.some(ph => placeholderSet.has(ph));
+    visibleByKey[key] = key === 'summary' ? true : group.some(ph => placeholderSet.has(ph));
+  }
+  return visibleByKey;
+}
+
+function buildConfigFromTemplate(template: string): Record<AdaptiveFieldKey, AdaptiveFieldConfig> {
+  const placeholderSet = new Set(extractPlaceholders(template));
+  const lines = template.split(/\r?\n/);
+  const labelByKey = collectCustomLabelsByKeyFromTemplateLines(lines);
+  const visibleByKey = buildVisibilityByKey(placeholderSet);
+
+  const cfg = {} as Record<AdaptiveFieldKey, AdaptiveFieldConfig>;
+  for (const key of ADAPTIVE_FIELD_KEYS) {
     cfg[key] = {
-      visible,
+      visible: visibleByKey[key],
       label: (labelByKey[key] ?? FALLBACK_CUSTOM_LABELS[key]).trim()
     };
   }

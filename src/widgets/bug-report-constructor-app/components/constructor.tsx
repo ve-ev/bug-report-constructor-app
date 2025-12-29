@@ -36,6 +36,29 @@ const EMPTY_SAVED_BLOCKS: SavedBlocks = {
 
 const BLOCK_MESSAGE_HIDE_MS = 1500;
 
+function previewToggleLabel(showGeneratedDescription: boolean): string {
+  return showGeneratedDescription ? 'Hide preview' : 'Show preview';
+}
+
+const Optional: React.FC<{when: boolean; children: React.ReactNode}> = ({when, children}) => {
+  return when ? children : null;
+};
+
+const ActiveDragOverlay: React.FC<{activeDrag: {tab: SavedBlocksTab; text: string} | null}> = ({activeDrag}) => {
+  if (!activeDrag) {
+    return null;
+  }
+
+  return (
+    <div
+      className="w-[min(520px,calc(100vw-24px))] rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 shadow-lg"
+      style={{background: 'color-mix(in srgb, var(--ring-content-background-color) 92%, transparent)'}}
+    >
+      <div className="whitespace-pre-wrap break-words text-[13px] leading-5">{activeDrag.text}</div>
+    </div>
+  );
+};
+
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;
   if (active === 'markdown_default') {
@@ -57,7 +80,6 @@ export type ConstructorProps = {
   onRegisterReset?: (fn: (() => void) | null) => void;
 };
 
-// eslint-disable-next-line complexity
 const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   const [api, setApi] = useState<API | null>(null);
 
@@ -279,27 +301,32 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   }, [api]);
 
   const persistSavedBlocks = useCallback(
-    // eslint-disable-next-line complexity
-    async (next: SavedBlocks, options?: {successMessage?: string}) => {
+    async (next: SavedBlocks, options?: { successMessage?: string }) => {
       // Optimistic local update to keep UI responsive.
       setSavedBlocks(next);
 
+      const successMessage = options?.successMessage;
+
       if (!api) {
-        setBlocksMessage(options?.successMessage ?? null);
-        return;
+        setBlocksMessage(successMessage ?? null);
+        return Promise.resolve();
       }
 
       setBlocksMessage(null);
       setBlocksError(null);
       setBlocksSaving(true);
+
       try {
-        const saved = normalizeSavedBlocks(await api.setSavedBlocks(next));
-        setSavedBlocks(saved);
-        setBlocksMessage(options?.successMessage ?? 'Saved blocks updated');
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setBlocksError(msg);
-        // Keep optimistic UI state in-memory.
+        try {
+          const result = await api
+              .setSavedBlocks(next);
+          const saved = normalizeSavedBlocks(result);
+          setSavedBlocks(saved);
+          setBlocksMessage(successMessage ?? 'Saved blocks updated');
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setBlocksError(msg);
+        }
       } finally {
         setBlocksSaving(false);
       }
@@ -616,27 +643,25 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-6">
-              {adaptiveFields.preconditions.visible ? (
-                <>
-                  <PreconditionsRow
-                    label={adaptiveFields.preconditions.label}
-                    dropEnabled={activeDrag?.tab === 'preconditions'}
-                    value={preconditions}
-                    onValueChange={setPreconditions}
-                    onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
-                    onFocused={onPreconditionsFocused}
-                    onSaveSelection={onSavePreconditionsSelection}
-                  />
+              <Optional when={adaptiveFields.preconditions.visible}>
+                <PreconditionsRow
+                  label={adaptiveFields.preconditions.label}
+                  dropEnabled={activeDrag?.tab === 'preconditions'}
+                  value={preconditions}
+                  onValueChange={setPreconditions}
+                  onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
+                  onFocused={onPreconditionsFocused}
+                  onSaveSelection={onSavePreconditionsSelection}
+                />
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <TwButton disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
-                      Save Preconditions to Saved Blocks
-                    </TwButton>
-                  </div>
-                </>
-              ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <TwButton disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
+                    Save Preconditions to Saved Blocks
+                  </TwButton>
+                </div>
+              </Optional>
 
-              {adaptiveFields.steps.visible ? (
+              <Optional when={adaptiveFields.steps.visible}>
                 <StepsConstructor
                   label={adaptiveFields.steps.label}
                   steps={steps}
@@ -646,23 +671,23 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                   onSaveStep={onSaveStep}
                   savedStepBlocks={savedBlocks.steps}
                 />
-              ) : null}
+              </Optional>
 
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {adaptiveFields.expected.visible ? (
+                <Optional when={adaptiveFields.expected.visible}>
                   <FieldComponent label={adaptiveFields.expected.label} htmlFor="expected">
                     <TwTextarea id="expected" rows={6} value={expected} onChange={onExpectedChange}/>
                   </FieldComponent>
-                ) : null}
+                </Optional>
 
-                {adaptiveFields.actual.visible ? (
+                <Optional when={adaptiveFields.actual.visible}>
                   <FieldComponent label={adaptiveFields.actual.label} htmlFor="actual">
                     <TwTextarea id="actual" rows={6} value={actual} onChange={onActualChange}/>
                   </FieldComponent>
-                ) : null}
+                </Optional>
               </div>
 
-              {adaptiveFields.additionalInfo.visible ? (
+              <Optional when={adaptiveFields.additionalInfo.visible}>
                 <FieldComponent label={adaptiveFields.additionalInfo.label} htmlFor="additionalInfo">
                   <TwTextarea
                     id="additionalInfo"
@@ -671,7 +696,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                     onChange={onAdditionalInfoChange}
                   />
                 </FieldComponent>
-              ) : null}
+              </Optional>
             </div>
           </div>
 
@@ -712,34 +737,32 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                   <div className="flex flex-col gap-2">
                     <div>
                       <TwButton onClick={onToggleGeneratedDescription}>
-                        {showGeneratedDescription ? 'Hide preview' : 'Show preview'}
+                        {previewToggleLabel(showGeneratedDescription)}
                       </TwButton>
                     </div>
 
-                    {showGeneratedDescription ? (
-                      <>
-                        <textarea
-                          id="generatedDescription"
-                          ref={generatedDescriptionRef}
-                          rows={14}
-                          readOnly
-                          value={description}
-                          onFocus={onGeneratedDescriptionFocus}
-                          className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-                        />
-                        <div>
-                          <TwButton variant="primary" onClick={onCopyDescription}>
-                            Copy to clipboard
-                          </TwButton>
-                        </div>
-                      </>
-                    ) : null}
+                    <Optional when={showGeneratedDescription}>
+                      <textarea
+                        id="generatedDescription"
+                        ref={generatedDescriptionRef}
+                        rows={14}
+                        readOnly
+                        value={description}
+                        onFocus={onGeneratedDescriptionFocus}
+                        className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                      />
+                      <div>
+                        <TwButton variant="primary" onClick={onCopyDescription}>
+                          Copy to clipboard
+                        </TwButton>
+                      </div>
+                    </Optional>
 
-                    {copyStatus ? (
+                    <Optional when={Boolean(copyStatus)}>
                       <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
                         {copyStatus}
                       </div>
-                    ) : null}
+                    </Optional>
                   </div>
                 </FieldComponent>
               </div>
@@ -749,14 +772,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
       </div>
 
       <DragOverlay>
-        {activeDrag ? (
-          <div
-            className="w-[min(520px,calc(100vw-24px))] rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 shadow-lg"
-            style={{background: 'color-mix(in srgb, var(--ring-content-background-color) 92%, transparent)'}}
-          >
-            <div className="whitespace-pre-wrap break-words text-[13px] leading-5">{activeDrag.text}</div>
-          </div>
-        ) : null}
+        <ActiveDragOverlay activeDrag={activeDrag}/>
       </DragOverlay>
     </DndContext>
   );
