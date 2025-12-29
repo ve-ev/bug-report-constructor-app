@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core';
+import {arrayMove} from '@dnd-kit/sortable';
 
 import {API} from '../api.ts';
 import type {OutputFormatsPayload, SavedBlocks} from '../types.ts';
@@ -91,7 +92,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
 
   const [preconditions, setPreconditions] = useState('');
   const [steps, setSteps] = useState<StepItem[]>([]);
-  const [lastAddedStepText, setLastAddedStepText] = useState<string | null>(null);
 
   const [expected, setExpected] = useState('');
   const [actual, setActual] = useState('');
@@ -389,29 +389,27 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     [persistSavedBlocks, savedBlocks, uniqAppend]
   );
 
-  const onStepAdded = useCallback((text: string) => {
-    setLastAddedStepText(text);
-  }, []);
+  const onSaveStep = useCallback(
+    async (text: string) => {
+      const clean = normalizeSelectionForSavedBlock(text);
+      if (!clean) {
+        return;
+      }
 
-  const saveLastStepToSavedBlocks = useCallback(async () => {
-    const t = (lastAddedStepText ?? '').trim();
-    if (!t) {
-      return;
-    }
-
-    const next = {
-      ...savedBlocks,
-      steps: uniqAppend(savedBlocks.steps, [t])
-    };
-    await persistSavedBlocks(next, {successMessage: 'Saved last added step to Saved Blocks'});
-    setActiveTab('steps');
-  }, [lastAddedStepText, persistSavedBlocks, savedBlocks, uniqAppend]);
+      const next = {
+        ...savedBlocks,
+        steps: uniqAppend(savedBlocks.steps, [clean])
+      };
+      await persistSavedBlocks(next, {successMessage: 'Saved step block'});
+      setActiveTab('steps');
+    },
+    [persistSavedBlocks, savedBlocks, uniqAppend]
+  );
 
   const onResetForm = useCallback(() => {
     setSummary('');
     setPreconditions('');
     setSteps([]);
-    setLastAddedStepText(null);
     setExpected('');
     setActual('');
     setAdditionalInfo('');
@@ -477,14 +475,67 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     return {overId, tab: data.tab, text: data.text};
   }, []);
 
+  const reorderStepById = useCallback((activeId: string, overId: string) => {
+    if (activeId === overId) {
+      return;
+    }
+    setSteps(prev => {
+      const oldIndex = prev.findIndex(s => s.id === activeId);
+      const newIndex = prev.findIndex(s => s.id === overId);
+      if (oldIndex < 0 || newIndex < 0) {
+        return prev;
+      }
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  }, []);
+
+  const handleStepReorderDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const activeData = event.active.data.current as {type?: string} | undefined;
+      if (activeData?.type !== 'step') {
+        return false;
+      }
+
+      const overId = event.over?.id;
+      if (!overId || overId === event.active.id) {
+        return true;
+      }
+
+      reorderStepById(String(event.active.id), String(overId));
+      return true;
+    },
+    [reorderStepById]
+  );
+
+  const handleSavedBlocksDropEnd = useCallback(
+    (event: DragEndEvent) => {
+      const payload = getDropPayload(event);
+      if (!payload || payload.tab !== 'steps') {
+        return;
+      }
+
+      if (payload.overId === STEPS_DROP_ID) {
+        setSteps(prev => [...prev, {id: createId('issue'), text: payload.text}]);
+        return;
+      }
+
+      const overData = event.over?.data.current as {type?: string} | undefined;
+      if (overData?.type === 'step') {
+        setSteps(prev => [...prev, {id: createId('issue'), text: payload.text}]);
+      }
+    },
+    [getDropPayload]
+  );
+
   const onDragEnd = useCallback((event: DragEndEvent) => {
     setActiveDrag(null);
 
-    const payload = getDropPayload(event);
-    if (payload?.overId === STEPS_DROP_ID && payload.tab === 'steps') {
-      setSteps(prev => [...prev, {id: createId('issue'), text: payload.text}]);
+    if (handleStepReorderDragEnd(event)) {
+      return;
     }
-  }, [getDropPayload]);
+
+    handleSavedBlocksDropEnd(event);
+  }, [handleSavedBlocksDropEnd, handleStepReorderDragEnd]);
 
   const onDragCancel = useCallback(() => {
     setActiveDrag(null);
@@ -570,22 +621,15 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
             ) : null}
 
             {adaptiveFields.steps.visible ? (
-              <>
-                <StepsConstructor
-                  label={adaptiveFields.steps.label}
-                  steps={steps}
-                  onChangeSteps={setSteps}
-                  dropEnabled={stepsDropEnabled}
-                  onFocused={onStepsFocused}
-                  onStepAdded={onStepAdded}
-                />
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <TwButton disabled={!lastAddedStepText?.trim()} onClick={saveLastStepToSavedBlocks}>
-                    Save last added step to Saved Blocks
-                  </TwButton>
-                </div>
-              </>
+              <StepsConstructor
+                label={adaptiveFields.steps.label}
+                steps={steps}
+                onChangeSteps={setSteps}
+                dropEnabled={stepsDropEnabled}
+                onFocused={onStepsFocused}
+                onSaveStep={onSaveStep}
+                savedStepBlocks={savedBlocks.steps}
+              />
             ) : null}
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
