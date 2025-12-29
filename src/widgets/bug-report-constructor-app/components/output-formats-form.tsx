@@ -14,10 +14,9 @@ type UpdateCustomFormatPatch = {
 };
 
 const DEFAULT_CUSTOM_TEMPLATE =
-  '{{summary}}\n\n## Prerequisites\n{{preconditions_bullets}}\n\n## Steps\n{{steps_numbered}}\n\n## Expected\n{{expected}}\n\n## Actual\n{{actual}}\n\n## Additional info\n{{additionalInfo}}\n';
+  '## Prerequisites\n{{preconditions_bullets}}\n\n## Steps\n{{steps_numbered}}\n\n## Expected\n{{expected}}\n\n## Actual\n{{actual}}\n\n## Additional info\n{{additionalInfo}}\n';
 
 const PLACEHOLDERS = [
-  '{{summary}}',
   '{{preconditions_bullets}}',
   '{{steps_numbered}}',
   '{{expected}}',

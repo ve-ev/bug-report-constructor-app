@@ -147,7 +147,7 @@ function buildCustomDescriptionLines(
     return;
   }
 
-  // Keep behavior consistent: do not inject Summary unless the user included {{summary}}.
+  // Keep behavior consistent: custom templates do not inject Summary automatically.
   pushBulletsSection(lines, 'Prerequisites', preconditions);
   pushNumberedSection(lines, 'Steps', steps);
   pushTextSection(lines, 'Expected', draft.expected);
@@ -166,7 +166,6 @@ export function renderCustomTemplate(
   const attachments = normalizeLines(draft.attachments.map(a => a.name));
 
   const vars: Record<string, string> = {
-    summary: draft.summary.trim(),
     preconditions: preconditions.join('\n'),
     'preconditions_bullets': preconditions.length ? preconditions.map(x => `- ${x}`).join('\n') : '-',
     steps: steps.join('\n'),

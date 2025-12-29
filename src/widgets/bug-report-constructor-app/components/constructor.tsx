@@ -301,7 +301,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   }, [api]);
 
   const persistSavedBlocks = useCallback(
-    async (next: SavedBlocks, options?: { successMessage?: string }) => {
+    (next: SavedBlocks, options?: {successMessage?: string}) => {
       // Optimistic local update to keep UI responsive.
       setSavedBlocks(next);
 
@@ -316,20 +316,20 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
       setBlocksError(null);
       setBlocksSaving(true);
 
-      try {
-        try {
-          const result = await api
-              .setSavedBlocks(next);
+      return api
+        .setSavedBlocks(next)
+        .then(result => {
           const saved = normalizeSavedBlocks(result);
           setSavedBlocks(saved);
           setBlocksMessage(successMessage ?? 'Saved blocks updated');
-        } catch (e) {
+        })
+        .catch(e => {
           const msg = e instanceof Error ? e.message : String(e);
           setBlocksError(msg);
-        }
-      } finally {
-        setBlocksSaving(false);
-      }
+        })
+        .finally(() => {
+          setBlocksSaving(false);
+        });
     },
     [api]
   );

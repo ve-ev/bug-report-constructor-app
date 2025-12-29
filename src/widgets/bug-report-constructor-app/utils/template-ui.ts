@@ -30,7 +30,7 @@ const FALLBACK_CUSTOM_LABELS: Record<AdaptiveFieldKey, string> = {
 };
 
 const PLACEHOLDER_GROUPS: Record<AdaptiveFieldKey, string[]> = {
-  summary: ['summary'],
+  summary: [],
   preconditions: ['preconditions', 'preconditions_bullets'],
   steps: ['steps', 'steps_numbered'],
   expected: ['expected'],

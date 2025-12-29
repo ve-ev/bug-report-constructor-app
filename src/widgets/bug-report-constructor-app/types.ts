@@ -12,7 +12,7 @@ export interface CustomOutputFormat {
   id: string;
   /** User-visible name. */
   name: string;
-  /** Template string with placeholders like {{summary}}. */
+  /** Template string with placeholders like {{steps_numbered}}. */
   template: string;
 }
 
