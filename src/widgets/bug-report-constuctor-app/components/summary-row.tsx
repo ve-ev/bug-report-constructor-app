@@ -1,5 +1,4 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {EditableHeading, Levels, Size} from '@jetbrains/ring-ui-built/components/editable-heading/editable-heading';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
 import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
@@ -7,6 +6,7 @@ import {SUMMARY_DROP_ID, appendSummaryChunk, normalizeSummaryInsert} from '../ut
 import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
 import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
 import {TwButton} from './tw-button.tsx';
+import {FieldDropzone} from './field-component.tsx';
 
 const SUMMARY_AUTOSAVE_MS = 650;
 
@@ -21,6 +21,82 @@ function isInputLikeTarget(el: HTMLElement | null): boolean {
     // Some Ring UI controls might use contenteditable.
     el.getAttribute('contenteditable') === 'true'
   );
+}
+
+function queryEditableInput(container: HTMLDivElement | null): HTMLInputElement | HTMLTextAreaElement | null {
+  if (!container) {
+    return null;
+  }
+  return container.querySelector('input,textarea') as HTMLInputElement | HTMLTextAreaElement | null;
+}
+
+function getSelectedTextFromInput(el: HTMLInputElement | HTMLTextAreaElement | null): string | null {
+  if (!el) {
+    return null;
+  }
+  const start = el.selectionStart ?? 0;
+  const end = el.selectionEnd ?? 0;
+  if (start === end) {
+    return '';
+  }
+  return el.value.slice(Math.min(start, end), Math.max(start, end));
+}
+
+function resolveDomSelection(): Selection | null {
+  return window.getSelection?.() ?? null;
+}
+
+function isDomSelectionInsideContainer(sel: Selection, container: HTMLDivElement): boolean {
+  if (sel.rangeCount === 0) {
+    return false;
+  }
+  const range = sel.getRangeAt(0);
+  const node = range.commonAncestorContainer;
+  const nodeEl = node instanceof HTMLElement ? node : node.parentElement;
+  return Boolean(nodeEl && container.contains(nodeEl));
+}
+
+function getSelectedTextFromDomSelection(container: HTMLDivElement | null): string | null {
+  if (!container) {
+    return null;
+  }
+
+  const sel = resolveDomSelection();
+  if (!sel) {
+    return '';
+  }
+
+  return isDomSelectionInsideContainer(sel, container) ? sel.toString() : '';
+}
+
+function shouldReadSelectionFromInput(args: {
+  container: HTMLDivElement;
+  input: HTMLInputElement | HTMLTextAreaElement | null;
+  activeElement: HTMLElement | null;
+}): args is {
+  container: HTMLDivElement;
+  input: HTMLInputElement | HTMLTextAreaElement;
+  activeElement: HTMLElement | null;
+} {
+  if (!args.input) {
+    return false;
+  }
+  if (document.activeElement === args.input) {
+    return true;
+  }
+  return Boolean(args.activeElement && args.container.contains(args.activeElement));
+}
+
+function computeSelectedText(args: {
+  container: HTMLDivElement;
+  input: HTMLInputElement | HTMLTextAreaElement | null;
+  activeElement: HTMLElement | null;
+}): string {
+  if (shouldReadSelectionFromInput(args)) {
+    return getSelectedTextFromInput(args.input) ?? '';
+  }
+
+  return getSelectedTextFromDomSelection(args.container) ?? '';
 }
 
 export type SummaryRowProps = {
@@ -41,23 +117,23 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   dropEnabled = true,
   onFocused,
   onSaveSelection
-  // eslint-disable-next-line complexity
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [selectedText, setSelectedText] = useState('');
 
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const resolveInput = useCallback(() => {
     const active = document.activeElement;
-    const activeInput =
-      active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? active : null;
-    const el = inputRef.current ?? activeInput;
+    const activeInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? active : null;
+    const queried = queryEditableInput(containerRef.current);
+    const el = inputRef.current ?? activeInput ?? queried;
     if (el) {
-      // EditableHeading may mount the input before the first onChange; capture it when focused.
+      // Capture the input once it becomes available.
       inputRef.current = el;
     }
-    return el;
+    return el ?? null;
   }, []);
 
   const {
@@ -67,7 +143,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
     freezeSelectionForDrag,
     restoreFrozenSelection,
     resetDragState
-  } = useFrozenSelectionDnd({resolveElement: resolveInput, selectionTrackingEnabled: isEditing});
+  } = useFrozenSelectionDnd({resolveElement: resolveInput, selectionTrackingEnabled: isFocused});
 
   const {isOver, setNodeRef} = useDroppable({
     id: SUMMARY_DROP_ID,
@@ -89,8 +165,8 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
       }
 
       const current = el.value;
-      const isFocused = document.activeElement === el;
-      if (!isFocused) {
+      const inputIsFocused = document.activeElement === el;
+      if (!inputIsFocused) {
         // Don't steal focus if user didn't manually place caret into Summary.
         onValueChange(appendSummaryChunk(value, clean));
         return;
@@ -120,14 +196,9 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
 
   const insertSummaryChunk = useCallback(
     (text: string) => {
-      if (!isEditing) {
-        onValueChange(appendSummaryChunk(value, text));
-        return;
-      }
-
       insertAtCursor(text);
     },
-    [insertAtCursor, isEditing, onValueChange, value]
+    [insertAtCursor]
   );
 
   const onDragEnd = useCallback(
@@ -144,33 +215,22 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         return;
       }
 
-      if (!isEditing) {
-        onValueChange(appendSummaryChunk(value, data.text));
-        resetDragState();
-        return;
-      }
-
       // Restore the frozen caret before inserting, so insertion is stable even if focus/selection
       // changed during DnD.
       restoreFrozenSelection();
       insertAtCursor(data.text);
       resetDragState();
     },
-    [insertAtCursor, isEditing, onValueChange, resetDragState, restoreFrozenSelection, value]
+    [insertAtCursor, resetDragState, restoreFrozenSelection]
   );
 
   const onBlur = useCallback(
-    (e: React.FocusEvent<HTMLElement>) => {
+    () => {
       if (draggingSummaryChunkRef.current) {
         return;
       }
 
-      // Keep Summary editing until focus moves to another input field.
-      // Clicking non-focusable UI (e.g., panel backgrounds) should not end editing.
-      const next = (e.relatedTarget ?? null) as HTMLElement | null;
-      if (isInputLikeTarget(next)) {
-        setIsEditing(false);
-      }
+      setIsFocused(false);
     },
     [draggingSummaryChunkRef]
   );
@@ -180,37 +240,27 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   }, [insertSummaryChunk, onRegisterInsertAtCursor]);
 
   useEffect(() => {
-    if (!isEditing) {
-      setSelectedText('');
-      return () => {
-        // no-op
-      };
-    }
-
     const onSelectionChange = () => {
-      const el = resolveInput();
-      if (!el) {
+      const container = containerRef.current;
+      if (!container) {
         setSelectedText('');
         return;
       }
-      if (document.activeElement !== el) {
-        setSelectedText('');
-        return;
-      }
-      const start = el.selectionStart ?? 0;
-      const end = el.selectionEnd ?? 0;
-      if (start === end) {
-        setSelectedText('');
-        return;
-      }
-      setSelectedText(el.value.slice(Math.min(start, end), Math.max(start, end)));
+
+      setSelectedText(
+        computeSelectedText({
+          container,
+          input: resolveInput(),
+          activeElement: document.activeElement as HTMLElement | null
+        })
+      );
     };
 
     document.addEventListener('selectionchange', onSelectionChange);
     return () => {
       document.removeEventListener('selectionchange', onSelectionChange);
     };
-  }, [isEditing, resolveInput]);
+  }, [resolveInput]);
 
   const onSaveSelectionPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     // Preserve focus/selection in the editable input.
@@ -229,7 +279,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
 
   const onSummaryDragStart = useCallback(
     (event: {active: {data: {current: unknown}}}) => {
-      if (!isEditing) {
+      if (!isFocused) {
         return;
       }
       const data = event.active.data.current as {tab?: SavedBlocksTab; text?: string} | undefined;
@@ -238,7 +288,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         freezeSelectionForDrag();
       }
     },
-    [freezeSelectionForDrag, isEditing]
+    [freezeSelectionForDrag, isFocused]
   );
 
   const onSummaryDragCancel = useCallback(() => {
@@ -255,7 +305,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   const [autosaveTick, setAutosaveTick] = useState(0);
   useEffect(() => {
     let t: number | undefined;
-    if (isEditing) {
+    if (isFocused) {
       t = window.setTimeout(() => {
         setAutosaveTick(v => v + 1);
       }, SUMMARY_AUTOSAVE_MS);
@@ -265,24 +315,17 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
         window.clearTimeout(t);
       }
     };
-  }, [isEditing, value]);
+  }, [isFocused, value]);
 
-  let title = placeholder;
-  if (isEditing) {
-    title = value;
-  } else if (value.trim()) {
-    title = value;
-  }
-
-  const onEdit = useCallback(() => {
+  const onFocus = useCallback(() => {
     onFocused?.();
-    setIsEditing(true);
+    setIsFocused(true);
   }, [onFocused]);
 
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      setIsEditing(false);
+      (e.currentTarget as HTMLTextAreaElement | HTMLInputElement).blur();
     }
   }, []);
 
@@ -295,6 +338,12 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
     },
     [captureSelection, onValueChange]
   );
+
+  const onSelect = useCallback((e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    inputRef.current = el;
+    captureSelection(el);
+  }, [captureSelection]);
 
   const onPaste = useCallback(
     (e: React.ClipboardEvent) => {
@@ -325,51 +374,49 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   );
 
   return (
-    <div
-      ref={setNodeRef}
-      className="relative"
-    >
-      {isEditing && selectedText.trim() ? (
-        <div className="absolute right-2 top-2 z-10">
-          <TwButton
-            size="xs"
-            variant="ghost"
-            onPointerDown={onSaveSelectionPointerDown}
-            onClick={onSaveSelectionClick}
-            disabled={!onSaveSelection}
-            title="Save selected text to Saved Blocks"
-          >
-            Save selection
-          </TwButton>
+    <div ref={containerRef} className="relative w-full">
+      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="w-full p-1">
+        <div className="relative flex w-full items-center rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-pink-400/60">
+          {selectedText.trim() ? (
+            <div className="absolute right-2 top-2 z-10">
+              <TwButton
+                size="xs"
+                variant="secondary"
+                className="shadow-sm active:translate-y-px active:shadow-none"
+                onPointerDown={onSaveSelectionPointerDown}
+                onClick={onSaveSelectionClick}
+                disabled={!onSaveSelection}
+                title="Save selected text to Saved Blocks"
+              >
+                Save selection
+              </TwButton>
+            </div>
+          ) : null}
+
+          <textarea
+            ref={node => {
+              inputRef.current = node;
+            }}
+            rows={1}
+            value={value}
+            placeholder={placeholder}
+            onChange={onChange}
+            onPaste={onPaste}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            onKeyDown={onKeyDown}
+            onSelect={onSelect}
+            onKeyUp={onSelect}
+            onMouseUp={onSelect}
+            className="block flex-1 resize-none border-0 bg-transparent p-0 text-[20px] font-semibold leading-7 outline-none focus:ring-0"
+          />
+
+          {/* prevents TS “unused state” while still making autosave observable in React DevTools */}
+          <span className="hidden" aria-hidden>
+            {autosaveTick ? '' : ''}
+          </span>
         </div>
-      ) : null}
-
-      <div
-        className={
-          isOver
-            ? 'rounded-md border-2 border-dashed border-pink-400 bg-[rgba(236,72,153,0.08)] p-3 ring-2 ring-pink-300/30'
-            : 'rounded-md border-2 border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3'
-        }
-      >
-        <EditableHeading
-          level={Levels.H1}
-          size={Size.FULL}
-          embedded
-          isEditing={isEditing}
-          onEdit={onEdit}
-          onBlur={onBlur}
-          onKeyDown={onKeyDown}
-          onChange={onChange}
-          onPaste={onPaste}
-        >
-          {title}
-        </EditableHeading>
-
-        {/* prevents TS “unused state” while still making autosave observable in React DevTools */}
-        <span className="hidden" aria-hidden>
-          {autosaveTick ? '' : ''}
-        </span>
-      </div>
+      </FieldDropzone>
     </div>
   );
 };

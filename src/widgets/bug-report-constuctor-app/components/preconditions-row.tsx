@@ -225,34 +225,37 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
 
   return (
     <FieldComponent label={label} htmlFor="issue-preconditions">
-      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="relative p-3">
-        {selectedText.trim() ? (
-          <div className="absolute right-2 top-2 z-10">
-            <TwButton
-              size="xs"
-              variant="ghost"
-              onPointerDown={onSaveSelectionPointerDown}
-              onClick={onSaveSelectionClick}
-              disabled={!onSaveSelection}
-              title="Save selected text to Saved Blocks"
-            >
-              Save selection
-            </TwButton>
-          </div>
-        ) : null}
-        <textarea
-          id="issue-preconditions"
-          ref={textareaRef}
-          className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-          placeholder="Drop Preconditions blocks here or type them…"
-          value={value}
-          onChange={onChange}
-          onSelect={onSelect}
-          onFocus={onFocus}
-          onKeyUp={onSelect}
-          onMouseUp={onSelect}
-          rows={rows}
-        />
+      <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="p-3">
+        <div className="relative">
+          {selectedText.trim() ? (
+            <div className="absolute right-2 top-2 z-10">
+              <TwButton
+                size="xs"
+                variant="secondary"
+                className="shadow-sm active:translate-y-px active:shadow-none"
+                onPointerDown={onSaveSelectionPointerDown}
+                onClick={onSaveSelectionClick}
+                disabled={!onSaveSelection}
+                title="Save selected text to Saved Blocks"
+              >
+                Save selection
+              </TwButton>
+            </div>
+          ) : null}
+          <textarea
+            id="issue-preconditions"
+            ref={textareaRef}
+            className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+            placeholder="Drop Preconditions blocks here or type them…"
+            value={value}
+            onChange={onChange}
+            onSelect={onSelect}
+            onFocus={onFocus}
+            onKeyUp={onSelect}
+            onMouseUp={onSelect}
+            rows={rows}
+          />
+        </div>
       </FieldDropzone>
     </FieldComponent>
   );

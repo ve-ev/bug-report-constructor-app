@@ -19,7 +19,10 @@ const VARIANT_CLASS_BY_VARIANT: Record<TwButtonVariant, string> = {
   ghost:
     'bg-transparent text-[var(--ring-text-color)] hover:bg-[rgba(236,72,153,0.10)] active:bg-[rgba(236,72,153,0.18)]',
   secondary:
-    'border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] text-[var(--ring-text-color)] hover:bg-[rgba(236,72,153,0.10)] active:bg-[rgba(236,72,153,0.18)]'
+    'border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] text-[var(--ring-text-color)] ' +
+    // Keep hover/active fully opaque (no alpha background) while still providing visual feedback.
+    'hover:border-pink-400 hover:bg-[var(--ring-content-background-color)] hover:shadow-sm ' +
+    'active:border-pink-500 active:bg-[var(--ring-content-background-color)]'
 };
 
 export interface TwButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
