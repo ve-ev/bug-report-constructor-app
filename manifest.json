@@ -3,13 +3,13 @@
   "title": "Bug Report Constructor",
   "description": "",
   "$schema": "https://json.schemastore.org/youtrack-app.json",
+  "version": "1.0.0",
   "vendor": {
     "name": "E.V",
     "url": "https://github.com/ve-ev"
   },
   "icon": "icon.svg",
   "widgets": [
-
     {
       "key": "constructor",
       "name": "Bug Report Constructor",
