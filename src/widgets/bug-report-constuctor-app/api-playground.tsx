@@ -1,5 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {TwButton} from './components/tw-button.tsx';
+import {FieldComponent} from './components/field-component.tsx';
+import {TwTextarea} from './components/tw-textarea.tsx';
 import {API} from './api.ts';
 import {SavedBlocks} from './types.ts';
 import {normalizeSavedBlocks} from './utils/saved-blocks-utils.ts';
@@ -52,8 +54,6 @@ export const ApiPlayground: React.FunctionComponent = () => {
     let disposed = false;
 
     (async () => {
-      // Register widget in YouTrack. To learn more, see
-      // https://www.jetbrains.com/help/youtrack/devportal-apps/apps-host-api.html
       const host = await YTApp.register();
       if (disposed) {
         return;
@@ -166,40 +166,22 @@ export const ApiPlayground: React.FunctionComponent = () => {
   });
 
   return (
-    <div className="apiPlayground">
-      <div className="form">
-        <label className="field">
-          <div className="fieldLabel">Summary</div>
-          <textarea
-            className="fieldInput"
-            value={summaryText}
-            onChange={onSummaryChange}
-            rows={3}
-          />
-        </label>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6">
+        <FieldComponent label="Summary">
+          <TwTextarea value={summaryText} onChange={onSummaryChange} rows={3}/>
+        </FieldComponent>
 
-        <label className="field">
-          <div className="fieldLabel">Preconditions</div>
-          <textarea
-            className="fieldInput"
-            value={preconditionsText}
-            onChange={onPreconditionsChange}
-            rows={3}
-          />
-        </label>
+        <FieldComponent label="Preconditions">
+          <TwTextarea value={preconditionsText} onChange={onPreconditionsChange} rows={3}/>
+        </FieldComponent>
 
-        <label className="field">
-          <div className="fieldLabel">Steps (one per line)</div>
-          <textarea
-            className="fieldInput"
-            value={stepsText}
-            onChange={onStepsChange}
-            rows={6}
-          />
-        </label>
+        <FieldComponent label="Steps (one per line)">
+          <TwTextarea value={stepsText} onChange={onStepsChange} rows={6}/>
+        </FieldComponent>
       </div>
 
-      <div className="actions">
+      <div className="flex flex-wrap items-center gap-2">
         <TwButton variant="primary" disabled={!canCallApi} onClick={load}>
           {loadTitle}
         </TwButton>
@@ -213,14 +195,18 @@ export const ApiPlayground: React.FunctionComponent = () => {
 
       {showStatus ? <div className={statusClassName}>{statusText}</div> : null}
 
-      <div className="preview">
-        <div className="previewTitle">Payload to save</div>
-        <pre className="previewBody">{JSON.stringify(collectedBlocks, null, JSON_PRETTY_SPACES)}</pre>
+      <div className="flex flex-col gap-2">
+        <div className="text-[13px] font-semibold">Payload to save</div>
+        <pre className="m-0 overflow-auto rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 text-[12px] leading-[1.4]">
+          {JSON.stringify(collectedBlocks, null, JSON_PRETTY_SPACES)}
+        </pre>
       </div>
 
-      <div className="preview">
-        <div className="previewTitle">Last loaded from backend</div>
-        <pre className="previewBody">{JSON.stringify(lastLoaded, null, JSON_PRETTY_SPACES)}</pre>
+      <div className="flex flex-col gap-2">
+        <div className="text-[13px] font-semibold">Last loaded from backend</div>
+        <pre className="m-0 overflow-auto rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 text-[12px] leading-[1.4]">
+          {JSON.stringify(lastLoaded, null, JSON_PRETTY_SPACES)}
+        </pre>
       </div>
     </div>
   );

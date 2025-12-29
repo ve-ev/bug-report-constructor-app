@@ -26,6 +26,7 @@ import {copyToClipboard} from '../tools/clipboard.ts';
 import {OutputFormatsForm} from './output-formats-form.tsx';
 import {computeAdaptiveFields} from '../utils/template-ui.ts';
 import {TwButton} from './tw-button.tsx';
+import {TwTextarea} from './tw-textarea.tsx';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -650,37 +651,24 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {adaptiveFields.expected.visible ? (
                   <FieldComponent label={adaptiveFields.expected.label} htmlFor="expected">
-                    <textarea
-                      id="expected"
-                      rows={6}
-                      value={expected}
-                      onChange={onExpectedChange}
-                      className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-                    />
+                    <TwTextarea id="expected" rows={6} value={expected} onChange={onExpectedChange}/>
                   </FieldComponent>
                 ) : null}
 
                 {adaptiveFields.actual.visible ? (
                   <FieldComponent label={adaptiveFields.actual.label} htmlFor="actual">
-                    <textarea
-                      id="actual"
-                      rows={6}
-                      value={actual}
-                      onChange={onActualChange}
-                      className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-                    />
+                    <TwTextarea id="actual" rows={6} value={actual} onChange={onActualChange}/>
                   </FieldComponent>
                 ) : null}
               </div>
 
               {adaptiveFields.additionalInfo.visible ? (
                 <FieldComponent label={adaptiveFields.additionalInfo.label} htmlFor="additionalInfo">
-                  <textarea
+                  <TwTextarea
                     id="additionalInfo"
                     rows={6}
                     value={additionalInfo}
                     onChange={onAdditionalInfoChange}
-                    className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
                   />
                 </FieldComponent>
               ) : null}
