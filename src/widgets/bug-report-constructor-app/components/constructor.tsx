@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {flushSync} from 'react-dom';
 import {
   DndContext,
@@ -12,7 +12,7 @@ import {
 import {arrayMove} from '@dnd-kit/sortable';
 
 import {API} from '../api.ts';
-import type {OutputFormatsPayload, SavedBlocks} from '../types.ts';
+import type {OutputFormatsPayload, Project, ProjectCustomField, SavedBlocks, SelectedCustomField} from '../types.ts';
 import {SummaryRow} from './summary-row.tsx';
 import {appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
 import {PreconditionsRow} from './preconditions-row.tsx';
@@ -27,6 +27,7 @@ import {OutputFormatsForm} from './output-formats-form.tsx';
 import {computeAdaptiveFields} from '../utils/template-ui.ts';
 import {TwButton} from './tw-button.tsx';
 import {TwTextarea} from './tw-textarea.tsx';
+import {CustomFieldsConstructor} from './custom-fields-constructor.tsx';
 
 const EMPTY_SAVED_BLOCKS: SavedBlocks = {
   summary: [],
@@ -40,9 +41,107 @@ function previewToggleLabel(showGeneratedDescription: boolean): string {
   return showGeneratedDescription ? 'Hide preview' : 'Show preview';
 }
 
+function isCreateDraftHotkey(e: KeyboardEvent): boolean {
+  return e.key === 'Enter' && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
+}
+
 const Optional: React.FC<{when: boolean; children: React.ReactNode}> = ({when, children}) => {
   return when ? children : null;
 };
+
+function useUserProjects(api: API | null): {projects: Project[]; loading: boolean; error: string | null} {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!api) {
+      return () => {
+        // no-op
+      };
+    }
+
+    let disposed = false;
+    (async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        const loaded = await api.getUserProjects();
+        if (disposed) {
+          return;
+        }
+        setProjects(loaded);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (disposed) {
+          return;
+        }
+        setError(msg);
+        setProjects([]);
+      } finally {
+        if (!disposed) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      disposed = true;
+    };
+  }, [api]);
+
+  return {projects, loading, error};
+}
+
+function useProjectCustomFields(
+  api: API | null,
+  projectId: string
+): {fields: ProjectCustomField[]; loading: boolean; error: string | null} {
+  const [fields, setFields] = useState<ProjectCustomField[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!api || !projectId) {
+      setFields([]);
+      setError(null);
+      setLoading(false);
+      return () => {
+        // no-op
+      };
+    }
+
+    let disposed = false;
+    (async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        const loaded = await api.getProjectCustomFields(projectId);
+        if (disposed) {
+          return;
+        }
+        setFields(loaded);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (disposed) {
+          return;
+        }
+        setError(msg);
+        setFields([]);
+      } finally {
+        if (!disposed) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      disposed = true;
+    };
+  }, [api, projectId]);
+
+  return {fields, loading, error};
+}
 
 const ActiveDragOverlay: React.FC<{activeDrag: {tab: SavedBlocksTab; text: string} | null}> = ({activeDrag}) => {
   if (!activeDrag) {
@@ -80,8 +179,19 @@ export type ConstructorProps = {
   onRegisterReset?: (fn: (() => void) | null) => void;
 };
 
+// eslint-disable-next-line complexity
 const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   const [api, setApi] = useState<API | null>(null);
+
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedCustomFields, setSelectedCustomFields] = useState<SelectedCustomField[]>([]);
+
+  const {projects, loading: projectsLoading, error: projectsError} = useUserProjects(api);
+  const {
+    fields: customFields,
+    loading: customFieldsLoading,
+    error: customFieldsError
+  } = useProjectCustomFields(api, selectedProjectId);
 
   const [blocksLoading, setBlocksLoading] = useState(false);
   const [blocksSaving, setBlocksSaving] = useState(false);
@@ -101,6 +211,13 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
       }
     };
   }, [blocksMessage]);
+
+  const selectedProject = useMemo(() => {
+    if (!selectedProjectId) {
+      return null;
+    }
+    return projects.find(p => p.id === selectedProjectId) ?? null;
+  }, [projects, selectedProjectId]);
 
   const [savedBlocks, setSavedBlocks] = useState<SavedBlocks>(EMPTY_SAVED_BLOCKS);
   const [activeTab, setActiveTab] = useState<SavedBlocksTab>('summary');
@@ -188,6 +305,41 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     return computeAdaptiveFields({format: outputFormat, template: activeTemplate});
   }, [activeTemplate, outputFormat]);
 
+  const customFieldsText = useMemo(() => {
+    if (!selectedCustomFields.length) {
+      return '';
+    }
+    const byId = new Map(customFields.map(f => [f.id, f] as const));
+
+    const lines = selectedCustomFields
+      .map(sel => {
+        const name = byId.get(sel.id)?.field.name;
+        if (!name) {
+          return '';
+        }
+        const value = sel.value.trim();
+        return value ? `- ${name}: ${value}` : `- ${name}`;
+      })
+      .filter(Boolean);
+
+    if (!lines.length) {
+      return '';
+    }
+    return `Custom fields:\n${lines.join('\n')}`;
+  }, [customFields, selectedCustomFields]);
+
+  const additionalInfoForDescription = useMemo(() => {
+    const base = additionalInfo.trim();
+    const extra = customFieldsText.trim();
+    if (!extra) {
+      return additionalInfo;
+    }
+    if (!base) {
+      return extra;
+    }
+    return `${base}\n\n${extra}`;
+  }, [additionalInfo, customFieldsText]);
+
   const description = buildBugReportDescription(
     {
       summary,
@@ -195,7 +347,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
       steps: steps.map(s => s.text),
       expected,
       actual,
-      additionalInfo,
+      additionalInfo: additionalInfoForDescription,
       attachments: []
     },
     outputFormat,
@@ -215,6 +367,39 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
       disposed = true;
     };
   }, []);
+
+  const onSelectedProjectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value;
+    setSelectedProjectId(next);
+    setSelectedCustomFields([]);
+  }, []);
+
+  const onCreateDraft = useCallback(() => {
+    if (!api || !selectedProject) {
+      return;
+    }
+    const baseUrl = api.getBaseUrl();
+    const url = `${baseUrl}newIssue?project=${encodeURIComponent(selectedProject.shortName)}`;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [api, selectedProject]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Hotkey: Ctrl+Enter
+      if (!isCreateDraftHotkey(e) || !api || !selectedProjectId) {
+        return;
+      }
+
+      e.preventDefault();
+      onCreateDraft();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [api, onCreateDraft, selectedProjectId]);
 
   useEffect(() => {
     if (!api) {
@@ -630,7 +815,41 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 pb-24">
+        <div className="bg-[var(--ring-content-background-color)] p-2">
+          <div className="flex items-center justify-between gap-3">
+            <TwButton variant="secondary" onClick={onResetForm}>
+              Reset form
+            </TwButton>
+
+            <div className="flex min-w-0 items-center justify-end gap-2">
+              <label htmlFor="projectSelect" className="shrink-0 text-[13px] font-semibold leading-5">
+                Project
+              </label>
+              <select
+                id="projectSelect"
+                disabled={!api || projectsLoading}
+                value={selectedProjectId}
+                onChange={onSelectedProjectChange}
+                className="w-[240px] min-w-0 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+              >
+                <option value="">{projectsLoading ? 'Loading projects…' : 'Select a project…'}</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.shortName})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {projectsError ? (
+            <div className="mt-2 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-[13px] leading-5">
+              {projectsError}
+            </div>
+          ) : null}
+        </div>
+
         <SummaryRow
           value={summary}
           onValueChange={setSummary}
@@ -701,6 +920,18 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
           </div>
 
           <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:flex-none xl:w-[520px]">
+            <Optional when={Boolean(selectedProjectId)}>
+              <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
+                <CustomFieldsConstructor
+                  availableFields={customFields}
+                  selectedFields={selectedCustomFields}
+                  onChangeSelectedFields={setSelectedCustomFields}
+                  loading={customFieldsLoading}
+                  error={customFieldsError}
+                />
+              </div>
+            </Optional>
+
             <SavedBlocksPanel
               blocks={savedBlocks}
               activeTab={activeTab}
@@ -767,6 +998,19 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
                 </FieldComponent>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50">
+        <div className="pointer-events-auto border-t border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-5 py-3 shadow-lg">
+          <div className="flex items-center justify-end gap-3">
+            <div className="text-[12px] opacity-70" title="Hotkey: Ctrl+Enter">
+              Ctrl+Enter
+            </div>
+            <TwButton variant="primary" disabled={!api || !selectedProjectId} onClick={onCreateDraft}>
+              Create Draft
+            </TwButton>
           </div>
         </div>
       </div>

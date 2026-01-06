@@ -1,5 +1,6 @@
-import {OutputFormatsPayload, SavedBlocks} from './types.ts';
+import {OutputFormatsPayload, Project, ProjectCustomField, SavedBlocks} from './types.ts';
 import {HostAPI} from "../../../@types/globals";
+
 
 export class API {
     constructor(private host: HostAPI) {}
@@ -12,6 +13,20 @@ export class API {
         const record = value as Record<string, unknown>;
         const err = record.error;
         return typeof err === 'string' && err.trim() ? err : null;
+    }
+
+    getBaseUrl(): string {
+        const baseUrl = this.host.getBaseUrl?.() || '';
+        // Normalize the URL to ensure it ends with a slash
+        return baseUrl.charAt(baseUrl.length - 1) === '/' ? baseUrl : `${baseUrl}/`;
+    }
+
+    async getUserProjects(): Promise<Project[]> {
+        return await this.host.fetchYouTrack('admin/projects?fields=id,name,shortName');
+    }
+
+    async getProjectCustomFields(projectId: string): Promise<ProjectCustomField[]> {
+        return await this.host.fetchYouTrack(`admin/projects/${projectId}/customFields?fields=id,field(id,name)`);
     }
 
     async getSavedBlocks(): Promise<SavedBlocks> {

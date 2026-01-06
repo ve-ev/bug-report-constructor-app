@@ -62,7 +62,9 @@ export interface EmbeddableWidgetAPI extends PluginEndpointAPILayer {
   removeWidget: () => void;
 }
 
-export type HostAPI = PluginEndpointAPILayer;
+export interface HostAPI extends PluginEndpointAPILayer {
+  getBaseUrl?: () => string;
+}
 
 
 type YTAppInterface = {

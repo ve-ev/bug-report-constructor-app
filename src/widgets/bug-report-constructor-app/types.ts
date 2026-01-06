@@ -1,3 +1,5 @@
+// App entities
+
 export interface SavedBlocks {
   /** Reusable blocks for Summary tab (used for drag/drop and click-to-insert). */
   summary: string[];
@@ -31,4 +33,28 @@ export interface BugReportDraft {
   actual: string;
   additionalInfo: string;
   attachments: {name: string}[];
+}
+
+// YouTrack entities
+
+export interface Project{
+  id: string;
+  name: string;
+  shortName: string;
+}
+
+export interface ProjectCustomField {
+  id: string;
+  field: CustomField;
+}
+
+export interface SelectedCustomField {
+  /** `ProjectCustomField.id` */
+  id: string;
+  value: string;
+}
+
+export interface CustomField {
+  id: string;
+  name: string;
 }
