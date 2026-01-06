@@ -2,11 +2,11 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {useDraggable} from '@dnd-kit/core';
 import {PlusIcon, XMarkIcon} from '@heroicons/react/20/solid';
 
-import type {SavedBlocks} from '../types.ts';
-import {computeIsBusy, computeStatus} from '../tools/ui-state.ts';
-import {HoldToConfirmButton} from './hold-to-confirm-button.tsx';
-import {TwButton} from './tw-button.tsx';
-import {TwButtonGroup} from './tw-button-group.tsx';
+import type {SavedBlocks} from '../../../types.ts';
+import {computeIsBusy, computeStatus} from '../../../tools/ui-state.ts';
+import {HoldToConfirmButton} from '../../ui/hold-to-confirm-button.tsx';
+import {TwButton} from '../../ui/tw-button.tsx';
+import {TwButtonGroup} from '../../ui/tw-button-group.tsx';
 
 export type SavedBlocksTab = keyof SavedBlocks;
 

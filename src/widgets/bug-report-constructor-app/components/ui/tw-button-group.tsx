@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react';
 
-import {cx} from './tw-utils.ts';
+import {cx} from '../../utils/tw-utils.ts';
 
 export interface TwButtonGroupItem<T extends string> {
   id: T;

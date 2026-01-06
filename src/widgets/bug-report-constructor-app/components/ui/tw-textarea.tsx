@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {cx} from './tw-utils.ts';
+import {cx} from '../../utils/tw-utils.ts';
 
 export type TwTextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 

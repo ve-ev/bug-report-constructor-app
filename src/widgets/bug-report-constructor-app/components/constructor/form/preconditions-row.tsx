@@ -1,11 +1,11 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useDndMonitor, useDroppable} from '@dnd-kit/core';
 
-import type {SavedBlocksTab} from './saved-blocks-panel.tsx';
-import {FieldDropzone, FieldComponent} from './field-component.tsx';
-import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../tools/text-insert.ts';
-import {useFrozenSelectionDnd} from '../tools/use-frozen-selection-dnd.ts';
-import {TwButton} from './tw-button.tsx';
+import type {SavedBlocksTab} from '../sidepanel/saved-blocks-panel.tsx';
+import {FieldDropzone, FieldComponent} from '../../ui/field-component.tsx';
+import {addBoundarySpaces, getSelectionFromElement, insertTextAtSelection} from '../../../tools/text-insert.ts';
+import {useFrozenSelectionDnd} from '../../../tools/use-frozen-selection-dnd.ts';
+import {TwButton} from '../../ui/tw-button.tsx';
 
 export type PreconditionsRowProps = {
   dropEnabled: boolean;

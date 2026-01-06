@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 
 import {TwButton, type TwButtonProps} from './tw-button.tsx';
-import {cx} from './tw-utils.ts';
+import {cx} from '../../utils/tw-utils.ts';
 
 export interface HoldToConfirmButtonProps
   extends Omit<TwButtonProps, 'onClick' | 'onPointerDown' | 'onPointerUp' | 'onPointerCancel' | 'onKeyDown' | 'onKeyUp'> {

@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {TwButton} from './components/tw-button.tsx';
-import {FieldComponent} from './components/field-component.tsx';
-import {TwTextarea} from './components/tw-textarea.tsx';
+import {TwButton} from './components/ui/tw-button.tsx';
+import {FieldComponent} from './components/ui/field-component.tsx';
+import {TwTextarea} from './components/ui/tw-textarea.tsx';
 import {API} from './api.ts';
 import {SavedBlocks} from './types.ts';
 import {normalizeSavedBlocks} from './utils/saved-blocks-utils.ts';

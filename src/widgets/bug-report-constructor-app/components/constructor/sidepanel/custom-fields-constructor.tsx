@@ -1,8 +1,9 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {ChevronDownIcon, ChevronUpIcon, XMarkIcon} from '@heroicons/react/20/solid';
 
-import type {ProjectCustomField, SelectedCustomField} from '../types.ts';
-import {TwButton} from './tw-button.tsx';
+import type {ProjectCustomField, SelectedCustomField} from '../../../types.ts';
+import {TwButton} from '../../ui/tw-button.tsx';
+import {TwSelect, type TwSelectItem} from '../../ui/tw-select.tsx';
 
 export type CustomFieldsConstructorProps = {
   availableFields: ProjectCustomField[];
@@ -16,7 +17,7 @@ const CustomFieldsExpandedBody: React.FC<{
   options: ProjectCustomField[];
   placeholder: string;
   selectValue: string;
-  onSelectChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onSelectChange: (next: string) => void;
   loading?: boolean;
   error?: string | null;
   selectedFieldEntities: {sel: SelectedCustomField; field: ProjectCustomField}[];
@@ -33,25 +34,36 @@ const CustomFieldsExpandedBody: React.FC<{
   onRemove,
   onValueChange
 }) => {
+  const items = useMemo((): Array<TwSelectItem<string>> => {
+    const base: Array<TwSelectItem<string>> = [
+      {kind: 'item', value: '', label: placeholder, disabled: true}
+    ];
+    for (const f of options) {
+      base.push({kind: 'item', value: f.id, label: f.field.name});
+    }
+    return base;
+  }, [options, placeholder]);
+
+  const selectedLabel = useMemo(() => {
+    if (!selectValue) {
+      return placeholder;
+    }
+    const found = items.find(x => x.kind === 'item' && x.value === selectValue);
+    return found && found.kind === 'item' ? found.label : placeholder;
+  }, [items, placeholder, selectValue]);
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <select
+        <TwSelect
           id="customFields"
           disabled={Boolean(loading) || !options.length}
           value={selectValue}
+          items={items}
+          selectedLabel={selectedLabel}
           onChange={onSelectChange}
-          className="min-w-[180px] flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-        >
-          <option value="" disabled>
-            {placeholder}
-          </option>
-          {options.map(f => (
-            <option key={f.id} value={f.id}>
-              {f.field.name}
-            </option>
-          ))}
-        </select>
+          className="min-w-[180px] flex-1"
+        />
       </div>
 
       {error ? (
@@ -134,8 +146,7 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
   );
 
   const onSelectChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const id = e.target.value;
+    (id: string) => {
       if (!id) {
         return;
       }

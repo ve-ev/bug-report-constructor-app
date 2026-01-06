@@ -1,5 +1,11 @@
 import type {SavedBlocks} from '../types.ts';
 
+export const EMPTY_SAVED_BLOCKS: SavedBlocks = {
+  summary: [],
+  preconditions: [],
+  steps: []
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
 }
@@ -29,5 +35,5 @@ export function normalizeSavedBlocks(value: unknown): SavedBlocks {
     return normalizeBlocks(value);
   }
 
-  return {summary: [], preconditions: [], steps: []};
+  return EMPTY_SAVED_BLOCKS;
 }

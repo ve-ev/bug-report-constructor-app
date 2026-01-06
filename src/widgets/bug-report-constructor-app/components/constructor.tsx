@@ -12,151 +12,27 @@ import {
 import {arrayMove} from '@dnd-kit/sortable';
 
 import {API} from '../api.ts';
-import type {OutputFormatsPayload, Project, ProjectCustomField, SavedBlocks, SelectedCustomField} from '../types.ts';
-import {SummaryRow} from './summary-row.tsx';
+import type {OutputFormatsPayload, SavedBlocks, SelectedCustomField} from '../types.ts';
+import {SummaryRow} from './constructor/summary-row.tsx';
 import {appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
-import {PreconditionsRow} from './preconditions-row.tsx';
-import {SavedBlocksPanel, type SavedBlocksTab} from './saved-blocks-panel.tsx';
-import {StepItem, StepsConstructor, STEPS_DROP_ID} from './steps-constructor.tsx';
+import {SavedBlocksPanel, type SavedBlocksTab} from './constructor/sidepanel/saved-blocks-panel.tsx';
+import {STEPS_DROP_ID, type StepItem} from './constructor/form/steps-constructor.tsx';
 import {createId} from '../tools/id.ts';
-import {normalizeSavedBlocks} from '../utils/saved-blocks-utils.ts';
-import {FieldComponent} from './field-component.tsx';
+import {EMPTY_SAVED_BLOCKS, normalizeSavedBlocks} from '../utils/saved-blocks-utils.ts';
 import {buildBugReportDescription, OutputFormat} from '../tools/markdown.ts';
 import {copyToClipboard} from '../tools/clipboard.ts';
-import {OutputFormatsForm} from './output-formats-form.tsx';
+import {OutputFormatsForm} from './constructor/sidepanel/output-formats-form.tsx';
 import {computeAdaptiveFields} from '../utils/template-ui.ts';
-import {TwButton} from './tw-button.tsx';
-import {TwTextarea} from './tw-textarea.tsx';
-import {CustomFieldsConstructor} from './custom-fields-constructor.tsx';
-
-const EMPTY_SAVED_BLOCKS: SavedBlocks = {
-  summary: [],
-  preconditions: [],
-  steps: []
-};
-
-const BLOCK_MESSAGE_HIDE_MS = 1500;
-
-function previewToggleLabel(showGeneratedDescription: boolean): string {
-  return showGeneratedDescription ? 'Hide preview' : 'Show preview';
-}
-
-function isCreateDraftHotkey(e: KeyboardEvent): boolean {
-  return e.key === 'Enter' && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
-}
-
-const Optional: React.FC<{when: boolean; children: React.ReactNode}> = ({when, children}) => {
-  return when ? children : null;
-};
-
-function useUserProjects(api: API | null): {projects: Project[]; loading: boolean; error: string | null} {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!api) {
-      return () => {
-        // no-op
-      };
-    }
-
-    let disposed = false;
-    (async () => {
-      setError(null);
-      setLoading(true);
-      try {
-        const loaded = await api.getUserProjects();
-        if (disposed) {
-          return;
-        }
-        setProjects(loaded);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (disposed) {
-          return;
-        }
-        setError(msg);
-        setProjects([]);
-      } finally {
-        if (!disposed) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      disposed = true;
-    };
-  }, [api]);
-
-  return {projects, loading, error};
-}
-
-function useProjectCustomFields(
-  api: API | null,
-  projectId: string
-): {fields: ProjectCustomField[]; loading: boolean; error: string | null} {
-  const [fields, setFields] = useState<ProjectCustomField[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!api || !projectId) {
-      setFields([]);
-      setError(null);
-      setLoading(false);
-      return () => {
-        // no-op
-      };
-    }
-
-    let disposed = false;
-    (async () => {
-      setError(null);
-      setLoading(true);
-      try {
-        const loaded = await api.getProjectCustomFields(projectId);
-        if (disposed) {
-          return;
-        }
-        setFields(loaded);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (disposed) {
-          return;
-        }
-        setError(msg);
-        setFields([]);
-      } finally {
-        if (!disposed) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      disposed = true;
-    };
-  }, [api, projectId]);
-
-  return {fields, loading, error};
-}
-
-const ActiveDragOverlay: React.FC<{activeDrag: {tab: SavedBlocksTab; text: string} | null}> = ({activeDrag}) => {
-  if (!activeDrag) {
-    return null;
-  }
-
-  return (
-    <div
-      className="w-[min(520px,calc(100vw-24px))] rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3 shadow-lg"
-      style={{background: 'color-mix(in srgb, var(--ring-content-background-color) 92%, transparent)'}}
-    >
-      <div className="whitespace-pre-wrap break-words text-[13px] leading-5">{activeDrag.text}</div>
-    </div>
-  );
-};
+import {CustomFieldsConstructor} from './constructor/sidepanel/custom-fields-constructor.tsx';
+import {useUserProjects} from '../tools/use-user-projects.ts';
+import {useProjectCustomFields} from '../tools/use-project-custom-fields.ts';
+import {IssueForm} from './constructor/form/issue-form.tsx';
+import {GeneratedDescription} from './constructor/sidepanel/generated-description.tsx';
+import {ActiveDragOverlay} from './constructor/active-drag-overlay.tsx';
+import {Optional} from './ui/optional.tsx';
+import {TopPanel} from './top-panel.tsx';
+import {BottomPanel} from './bottom-panel.tsx';
+import {MESSAGE_HIDE_MS} from '../utils/ui-constants.ts';
 
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;
@@ -179,7 +55,6 @@ export type ConstructorProps = {
   onRegisterReset?: (fn: (() => void) | null) => void;
 };
 
-// eslint-disable-next-line complexity
 const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   const [api, setApi] = useState<API | null>(null);
 
@@ -203,7 +78,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     if (blocksMessage) {
       t = window.setTimeout(() => {
         setBlocksMessage(null);
-      }, BLOCK_MESSAGE_HIDE_MS);
+      }, MESSAGE_HIDE_MS);
     }
     return () => {
       if (t !== undefined) {
@@ -238,7 +113,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   const [actual, setActual] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
 
-  const generatedDescriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  const generatedDescriptionRef = useRef<HTMLTextAreaElement>(null!);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [showGeneratedDescription, setShowGeneratedDescription] = useState(false);
 
@@ -252,7 +127,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     if (outputFormatsMessage) {
       t = window.setTimeout(() => {
         setOutputFormatsMessage(null);
-      }, BLOCK_MESSAGE_HIDE_MS);
+      }, MESSAGE_HIDE_MS);
     }
     return () => {
       if (t !== undefined) {
@@ -368,8 +243,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     };
   }, []);
 
-  const onSelectedProjectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = e.target.value;
+  const onSelectedProjectIdChange = useCallback((next: string) => {
     setSelectedProjectId(next);
     setSelectedCustomFields([]);
   }, []);
@@ -383,23 +257,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
 
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [api, selectedProject]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      // Hotkey: Ctrl+Enter
-      if (!isCreateDraftHotkey(e) || !api || !selectedProjectId) {
-        return;
-      }
-
-      e.preventDefault();
-      onCreateDraft();
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [api, onCreateDraft, selectedProjectId]);
 
   useEffect(() => {
     if (!api) {
@@ -816,39 +673,15 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
       <div className="flex flex-col gap-4 pb-24">
-        <div className="bg-[var(--ring-content-background-color)] p-2">
-          <div className="flex items-center justify-between gap-3">
-            <TwButton variant="secondary" onClick={onResetForm}>
-              Reset form
-            </TwButton>
-
-            <div className="flex min-w-0 items-center justify-end gap-2">
-              <label htmlFor="projectSelect" className="shrink-0 text-[13px] font-semibold leading-5">
-                Project
-              </label>
-              <select
-                id="projectSelect"
-                disabled={!api || projectsLoading}
-                value={selectedProjectId}
-                onChange={onSelectedProjectChange}
-                className="w-[240px] min-w-0 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-              >
-                <option value="">{projectsLoading ? 'Loading projects…' : 'Select a project…'}</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.shortName})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {projectsError ? (
-            <div className="mt-2 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-[13px] leading-5">
-              {projectsError}
-            </div>
-          ) : null}
-        </div>
+        <TopPanel
+          onResetForm={onResetForm}
+          projectSelectDisabled={!api || projectsLoading}
+          selectedProjectId={selectedProjectId}
+          projects={projects}
+          projectsLoading={projectsLoading}
+          onSelectedProjectIdChange={onSelectedProjectIdChange}
+          projectsError={projectsError}
+        />
 
         <SummaryRow
           value={summary}
@@ -860,64 +693,28 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
         />
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-col gap-6">
-              <Optional when={adaptiveFields.preconditions.visible}>
-                <PreconditionsRow
-                  label={adaptiveFields.preconditions.label}
-                  dropEnabled={activeDrag?.tab === 'preconditions'}
-                  value={preconditions}
-                  onValueChange={setPreconditions}
-                  onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
-                  onFocused={onPreconditionsFocused}
-                  onSaveSelection={onSavePreconditionsSelection}
-                />
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <TwButton disabled={!preconditions.trim()} onClick={savePreconditionsToSavedBlocks}>
-                    Save Preconditions to Saved Blocks
-                  </TwButton>
-                </div>
-              </Optional>
-
-              <Optional when={adaptiveFields.steps.visible}>
-                <StepsConstructor
-                  label={adaptiveFields.steps.label}
-                  steps={steps}
-                  onChangeSteps={setSteps}
-                  dropEnabled={stepsDropEnabled}
-                  onFocused={onStepsFocused}
-                  onSaveStep={onSaveStep}
-                  savedStepBlocks={savedBlocks.steps}
-                />
-              </Optional>
-
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Optional when={adaptiveFields.expected.visible}>
-                  <FieldComponent label={adaptiveFields.expected.label} htmlFor="expected">
-                    <TwTextarea id="expected" rows={6} value={expected} onChange={onExpectedChange}/>
-                  </FieldComponent>
-                </Optional>
-
-                <Optional when={adaptiveFields.actual.visible}>
-                  <FieldComponent label={adaptiveFields.actual.label} htmlFor="actual">
-                    <TwTextarea id="actual" rows={6} value={actual} onChange={onActualChange}/>
-                  </FieldComponent>
-                </Optional>
-              </div>
-
-              <Optional when={adaptiveFields.additionalInfo.visible}>
-                <FieldComponent label={adaptiveFields.additionalInfo.label} htmlFor="additionalInfo">
-                  <TwTextarea
-                    id="additionalInfo"
-                    rows={6}
-                    value={additionalInfo}
-                    onChange={onAdditionalInfoChange}
-                  />
-                </FieldComponent>
-              </Optional>
-            </div>
-          </div>
+          <IssueForm
+            adaptiveFields={adaptiveFields}
+            activeDrag={activeDrag}
+            preconditions={preconditions}
+            onPreconditionsChange={setPreconditions}
+            onRegisterPreconditionsInsert={onRegisterPreconditionsInsert}
+            onPreconditionsFocused={onPreconditionsFocused}
+            onSavePreconditionsSelection={onSavePreconditionsSelection}
+            onSavePreconditionsToSavedBlocks={savePreconditionsToSavedBlocks}
+            steps={steps}
+            onChangeSteps={setSteps}
+            stepsDropEnabled={stepsDropEnabled}
+            onStepsFocused={onStepsFocused}
+            onSaveStep={onSaveStep}
+            savedStepBlocks={savedBlocks.steps}
+            expected={expected}
+            onExpectedChange={onExpectedChange}
+            actual={actual}
+            onActualChange={onActualChange}
+            additionalInfo={additionalInfo}
+            onAdditionalInfoChange={onAdditionalInfoChange}
+          />
 
           <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:flex-none xl:w-[520px]">
             <Optional when={Boolean(selectedProjectId)}>
@@ -964,56 +761,22 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
               </div>
 
               <div className="p-3">
-                <FieldComponent label="Generated description" htmlFor="generatedDescription">
-                  <div className="flex flex-col gap-2">
-                    <div>
-                      <TwButton onClick={onToggleGeneratedDescription}>
-                        {previewToggleLabel(showGeneratedDescription)}
-                      </TwButton>
-                    </div>
-
-                    <Optional when={showGeneratedDescription}>
-                      <textarea
-                        id="generatedDescription"
-                        ref={generatedDescriptionRef}
-                        rows={14}
-                        readOnly
-                        value={description}
-                        onFocus={onGeneratedDescriptionFocus}
-                        className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-                      />
-                      <div>
-                        <TwButton variant="primary" onClick={onCopyDescription}>
-                          Copy to clipboard
-                        </TwButton>
-                      </div>
-                    </Optional>
-
-                    <Optional when={Boolean(copyStatus)}>
-                      <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] opacity-70">
-                        {copyStatus}
-                      </div>
-                    </Optional>
-                  </div>
-                </FieldComponent>
+                <GeneratedDescription
+                  description={description}
+                  showGeneratedDescription={showGeneratedDescription}
+                  onToggleGeneratedDescription={onToggleGeneratedDescription}
+                  generatedDescriptionRef={generatedDescriptionRef}
+                  onGeneratedDescriptionFocus={onGeneratedDescriptionFocus}
+                  onCopyDescription={onCopyDescription}
+                  copyStatus={copyStatus}
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50">
-        <div className="pointer-events-auto border-t border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-5 py-3 shadow-lg">
-          <div className="flex items-center justify-end gap-3">
-            <div className="text-[12px] opacity-70" title="Hotkey: Ctrl+Enter">
-              Ctrl+Enter
-            </div>
-            <TwButton variant="primary" disabled={!api || !selectedProjectId} onClick={onCreateDraft}>
-              Create Draft
-            </TwButton>
-          </div>
-        </div>
-      </div>
+      <BottomPanel createDraftDisabled={!api || !selectedProjectId} onCreateDraft={onCreateDraft}/>
 
       <DragOverlay>
         <ActiveDragOverlay activeDrag={activeDrag}/>

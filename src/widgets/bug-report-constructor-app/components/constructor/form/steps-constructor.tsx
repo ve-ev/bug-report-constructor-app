@@ -4,9 +4,9 @@ import {SortableContext, useSortable, verticalListSortingStrategy} from '@dnd-ki
 import {BookmarkIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon, XMarkIcon} from '@heroicons/react/20/solid';
 import {useDndContext, useDroppable} from '@dnd-kit/core';
 
-import {FieldDropzone, FieldComponent} from './field-component.tsx';
-import {createId} from '../tools/id.ts';
-import {TwButton} from './tw-button.tsx';
+import {FieldDropzone, FieldComponent} from '../../ui/field-component.tsx';
+import {createId} from '../../../tools/id.ts';
+import {TwButton} from '../../ui/tw-button.tsx';
 
 export const STEPS_DROP_ID = 'issue-drop-steps';
 

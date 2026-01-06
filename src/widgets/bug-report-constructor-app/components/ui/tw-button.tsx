@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {cx} from './tw-utils.ts';
+import {cx} from '../../utils/tw-utils.ts';
 
 export type TwButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost';
 export type TwButtonSize = 'sm' | 'md' | 'xs';
