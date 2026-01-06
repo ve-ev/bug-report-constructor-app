@@ -115,7 +115,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
 
   const generatedDescriptionRef = useRef<HTMLTextAreaElement>(null!);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
-  const [showGeneratedDescription, setShowGeneratedDescription] = useState(false);
 
   const [outputFormatsLoading, setOutputFormatsLoading] = useState(false);
   const [outputFormatsSaving, setOutputFormatsSaving] = useState(false);
@@ -666,10 +665,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     e.target.select();
   }, []);
 
-  const onToggleGeneratedDescription = useCallback(() => {
-    setShowGeneratedDescription(prev => !prev);
-  }, []);
-
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
       <div className="flex flex-col gap-4 pb-24">
@@ -717,18 +712,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
           />
 
           <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:flex-none xl:w-[520px]">
-            <Optional when={Boolean(selectedProjectId)}>
-              <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
-                <CustomFieldsConstructor
-                  availableFields={customFields}
-                  selectedFields={selectedCustomFields}
-                  onChangeSelectedFields={setSelectedCustomFields}
-                  loading={customFieldsLoading}
-                  error={customFieldsError}
-                />
-              </div>
-            </Optional>
-
             <SavedBlocksPanel
               blocks={savedBlocks}
               activeTab={activeTab}
@@ -742,6 +725,18 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
               error={blocksError}
               message={blocksMessage}
             />
+
+            <Optional when={Boolean(selectedProjectId)}>
+              <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
+                <CustomFieldsConstructor
+                  availableFields={customFields}
+                  selectedFields={selectedCustomFields}
+                  onChangeSelectedFields={setSelectedCustomFields}
+                  loading={customFieldsLoading}
+                  error={customFieldsError}
+                />
+              </div>
+            </Optional>
 
             <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)]">
               <div className="border-b border-[var(--ring-borders-color)] p-3">
@@ -763,8 +758,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
               <div className="p-3">
                 <GeneratedDescription
                   description={description}
-                  showGeneratedDescription={showGeneratedDescription}
-                  onToggleGeneratedDescription={onToggleGeneratedDescription}
                   generatedDescriptionRef={generatedDescriptionRef}
                   onGeneratedDescriptionFocus={onGeneratedDescriptionFocus}
                   onCopyDescription={onCopyDescription}

@@ -175,20 +175,20 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[13px] font-semibold leading-5">Custom fields</div>
-        <TwButton
-          size="xs"
-          variant="ghost"
-          onClick={onToggleCollapsed}
-          aria-label="Toggle custom fields"
-          aria-expanded={!collapsed}
-          title="Toggle"
-        >
+      <button
+        type="button"
+        className="flex items-center justify-between gap-3 text-left text-[13px] font-semibold leading-5"
+        onClick={onToggleCollapsed}
+        aria-label="Toggle custom fields"
+        aria-expanded={!collapsed}
+        title="Toggle"
+      >
+        <span>Custom fields</span>
+        <span className="shrink-0">
           <ChevronUpIcon className={'h-4 w-4' + (collapsed ? ' hidden' : '')}/>
           <ChevronDownIcon className={'h-4 w-4' + (collapsed ? '' : ' hidden')}/>
-        </TwButton>
-      </div>
+        </span>
+      </button>
 
       <div className={collapsed ? 'hidden' : ''}>
         <CustomFieldsExpandedBody

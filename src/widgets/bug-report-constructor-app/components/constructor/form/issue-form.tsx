@@ -7,7 +7,6 @@ import {PreconditionsRow} from './preconditions-row.tsx';
 import {StepsConstructor} from './steps-constructor.tsx';
 import {FieldComponent} from '../../ui/field-component.tsx';
 import {Optional} from '../../ui/optional.tsx';
-import {TwButton} from '../../ui/tw-button.tsx';
 import {TwTextarea} from '../../ui/tw-textarea.tsx';
 
 export type IssueFormProps = {
@@ -74,13 +73,8 @@ export const IssueForm: React.FC<IssueFormProps> = props => {
             onRegisterInsertAtCursor={onRegisterPreconditionsInsert}
             onFocused={onPreconditionsFocused}
             onSaveSelection={onSavePreconditionsSelection}
+            onSaveToSavedBlocks={onSavePreconditionsToSavedBlocks}
           />
-
-          <div className="flex flex-wrap items-center gap-2">
-            <TwButton disabled={!preconditions.trim()} onClick={onSavePreconditionsToSavedBlocks}>
-              Save Preconditions to Saved Blocks
-            </TwButton>
-          </div>
         </Optional>
 
         <Optional when={adaptiveFields.steps.visible}>
@@ -98,20 +92,20 @@ export const IssueForm: React.FC<IssueFormProps> = props => {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <Optional when={adaptiveFields.expected.visible}>
             <FieldComponent label={adaptiveFields.expected.label} htmlFor="expected">
-              <TwTextarea id="expected" rows={6} value={expected} onChange={onExpectedChange}/>
+              <TwTextarea id="expected" rows={4} value={expected} onChange={onExpectedChange}/>
             </FieldComponent>
           </Optional>
 
           <Optional when={adaptiveFields.actual.visible}>
             <FieldComponent label={adaptiveFields.actual.label} htmlFor="actual">
-              <TwTextarea id="actual" rows={6} value={actual} onChange={onActualChange}/>
+              <TwTextarea id="actual" rows={4} value={actual} onChange={onActualChange}/>
             </FieldComponent>
           </Optional>
         </div>
 
         <Optional when={adaptiveFields.additionalInfo.visible}>
           <FieldComponent label={adaptiveFields.additionalInfo.label} htmlFor="additionalInfo">
-            <TwTextarea id="additionalInfo" rows={6} value={additionalInfo} onChange={onAdditionalInfoChange}/>
+            <TwTextarea id="additionalInfo" rows={4} value={additionalInfo} onChange={onAdditionalInfoChange}/>
           </FieldComponent>
         </Optional>
       </div>

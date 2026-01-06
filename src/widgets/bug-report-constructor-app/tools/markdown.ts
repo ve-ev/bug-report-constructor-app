@@ -114,10 +114,7 @@ function buildIssueTemplateDescriptionLines(
     summary: string;
   }
 ): void {
-  const {draft, preconditions, steps, summary} = params;
-  if (summary) {
-    lines.push(summary, '');
-  }
+  const {draft, preconditions, steps} = params;
   // Template requested in the issue description.
   pushTemplateBullets(lines, 'Prerequisites', preconditions);
   pushTemplateNumbered(lines, 'Steps to reproduce:', steps);
@@ -166,6 +163,7 @@ export function renderCustomTemplate(
   const attachments = normalizeLines(draft.attachments.map(a => a.name));
 
   const vars: Record<string, string> = {
+    summary: draft.summary.trim(),
     preconditions: preconditions.join('\n'),
     'preconditions_bullets': preconditions.length ? preconditions.map(x => `- ${x}`).join('\n') : '-',
     steps: steps.join('\n'),

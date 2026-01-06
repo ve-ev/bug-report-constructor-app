@@ -16,6 +16,7 @@ export type PreconditionsRowProps = {
   onRegisterInsertAtCursor?: (fn: ((text: string) => void) | null) => void;
   onFocused?: () => void;
   onSaveSelection?: (text: string) => void;
+  onSaveToSavedBlocks?: () => void;
 };
 
 const DEFAULT_ROWS = 5;
@@ -54,7 +55,8 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   label = 'Preconditions',
   rows = DEFAULT_ROWS,
   onFocused,
-  onSaveSelection
+  onSaveSelection,
+  onSaveToSavedBlocks
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [selectedText, setSelectedText] = useState('');
@@ -224,7 +226,23 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
   }, [onSaveSelection, selectedText]);
 
   return (
-    <FieldComponent label={label} htmlFor="issue-preconditions">
+    <FieldComponent
+      label={label}
+      htmlFor="issue-preconditions"
+      actions={
+        onSaveToSavedBlocks ? (
+          <TwButton
+            size="xs"
+            variant="secondary"
+            disabled={!value.trim()}
+            onClick={onSaveToSavedBlocks}
+            title="Save Preconditions to Saved Blocks"
+          >
+            Save to Saved Blocks
+          </TwButton>
+        ) : null
+      }
+    >
       <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="p-3">
         <div className="relative">
           {selectedText.trim() ? (
@@ -245,7 +263,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
           <textarea
             id="issue-preconditions"
             ref={textareaRef}
-            className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+            className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-3 outline-none focus:ring-2 focus:ring-pink-400/60"
             placeholder="Drop Preconditions blocks here or type them…"
             value={value}
             onChange={onChange}
