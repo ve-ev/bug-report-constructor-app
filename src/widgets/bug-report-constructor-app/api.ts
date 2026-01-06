@@ -35,6 +35,10 @@ export class API {
         return await this.host.fetchYouTrack(`users/me/drafts/${issueId}`, {method: 'POST', body: {project: project}});
     }
 
+    async deleteDraft(issueId: string): Promise<void> {
+        await this.host.fetchYouTrack(`users/me/drafts/${issueId}`, {method: 'DELETE'});
+    }
+
     async getDraftCustomFields(issueId: string): Promise<CustomField[]> {
         const result = await this.host.fetchYouTrack<{fields?: Array<{id: string; name: string}>}>(
           `users/me/drafts/${issueId}?fields=id,fields(id,name)`

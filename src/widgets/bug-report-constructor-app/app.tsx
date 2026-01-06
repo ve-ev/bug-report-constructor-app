@@ -1,17 +1,11 @@
-import React, {memo, useMemo, useState, useCallback} from 'react';
+import React, {memo, useState, useCallback} from 'react';
 
 import {ApiPlayground} from './api-playground.tsx';
 import {Constructor} from './components/constructor.tsx';
 
-function shouldShowApiPlayground(): boolean {
-  const search = window.location?.search ?? '';
-  const hash = window.location?.hash ?? '';
-  return /(?:\?|&)(?:apiPlayground|playground)=1(?:&|$)/.test(search) || /(?:\?|&)(?:apiPlayground|playground)=1(?:&|$)/.test(hash);
-}
-
 const AppComponent: React.FunctionComponent = () => {
-  const initialShowPlayground = useMemo(() => shouldShowApiPlayground(), []);
-  const [showPlayground, setShowPlayground] = useState(initialShowPlayground);
+  const [showPlayground, setShowPlayground] = useState(false);
+  const [playgroundUnlocked, setPlaygroundUnlocked] = useState(false);
 
   const openPlayground = useCallback(() => {
     setShowPlayground(true);
@@ -26,7 +20,11 @@ const AppComponent: React.FunctionComponent = () => {
       {showPlayground ? (
         <ApiPlayground onClose={closePlayground}/>
       ) : (
-        <Constructor onOpenPlayground={openPlayground}/>
+        <Constructor
+          onOpenPlayground={openPlayground}
+          playgroundUnlocked={playgroundUnlocked}
+          onUnlockPlayground={() => setPlaygroundUnlocked(true)}
+        />
       )}
     </div>
   );

@@ -116,7 +116,7 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
   loading,
   error
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [selectValue, setSelectValue] = useState('');
 
   const options = useMemo(() => {

@@ -36,6 +36,8 @@ import {TopPanel} from './top-panel.tsx';
 import {BottomPanel} from './bottom-panel.tsx';
 import {MESSAGE_HIDE_MS} from '../utils/ui-constants.ts';
 
+const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
+
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;
   if (active === 'markdown_default') {
@@ -75,10 +77,22 @@ function mergeNullableErrors(primary: string | null, secondary: string | null): 
 export type ConstructorProps = {
   onRegisterReset?: (fn: (() => void) | null) => void;
   onOpenPlayground?: () => void;
+  playgroundUnlocked?: boolean;
+  onUnlockPlayground?: () => void;
 };
 
-const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPlayground}) => {
+const ConstructorImpl: React.FC<ConstructorProps> = ({
+  onRegisterReset,
+  onOpenPlayground,
+  playgroundUnlocked,
+  onUnlockPlayground
+}) => {
   const [api, setApi] = useState<API | null>(null);
+
+  const apiRef = useRef<API | null>(null);
+  useEffect(() => {
+    apiRef.current = api;
+  }, [api]);
 
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedCustomFields, setSelectedCustomFields] = useState<SelectedCustomField[]>([]);
@@ -92,11 +106,72 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
     revision: draftRevision
   } = useDraftIssue(api, selectedProjectId);
 
+  const draftIssueIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    draftIssueIdRef.current = draftIssueId;
+  }, [draftIssueId]);
+
+  const cleanupDraft = useCallback(() => {
+    const id = draftIssueIdRef.current;
+    const apiInstance = apiRef.current;
+    if (!apiInstance || !id) {
+      return;
+    }
+    // Ensure cleanup happens at most once per draft id.
+    draftIssueIdRef.current = null;
+    apiInstance.deleteDraft(id).catch(() => {
+      // best-effort
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', cleanupDraft);
+    window.addEventListener('pagehide', cleanupDraft);
+    window.addEventListener('popstate', cleanupDraft);
+    window.addEventListener('hashchange', cleanupDraft);
+
+    const historyApi = window.history;
+    const origPushState = historyApi?.pushState?.bind(historyApi);
+    const origReplaceState = historyApi?.replaceState?.bind(historyApi);
+
+    if (origPushState) {
+      historyApi.pushState = (...args: Parameters<History['pushState']>) => {
+        cleanupDraft();
+        return origPushState(...args);
+      };
+    }
+
+    if (origReplaceState) {
+      historyApi.replaceState = (...args: Parameters<History['replaceState']>) => {
+        cleanupDraft();
+        return origReplaceState(...args);
+      };
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', cleanupDraft);
+      window.removeEventListener('pagehide', cleanupDraft);
+      window.removeEventListener('popstate', cleanupDraft);
+      window.removeEventListener('hashchange', cleanupDraft);
+
+      if (origPushState) {
+        historyApi.pushState = origPushState;
+      }
+      if (origReplaceState) {
+        historyApi.replaceState = origReplaceState;
+      }
+
+      cleanupDraft();
+    };
+  }, [cleanupDraft]);
+
   const {
     fields: customFields,
     loading: customFieldsLoading,
     error: customFieldsError
   } = useDraftCustomFields(api, draftIssueId, draftRevision);
+
+  const [, setResetClicksInRow] = useState(0);
 
   const [blocksLoading, setBlocksLoading] = useState(false);
   const [blocksSaving, setBlocksSaving] = useState(false);
@@ -243,7 +318,11 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
   useEffect(() => {
     let disposed = false;
     (async () => {
-      const host = await YTApp.register();
+      const host = await YTApp.register({
+        onRefresh: () => {
+          cleanupDraft();
+        }
+      });
       if (disposed) {
         return;
       }
@@ -252,7 +331,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [cleanupDraft]);
 
   const onSelectedProjectIdChange = useCallback((next: string) => {
     setSelectedProjectId(next);
@@ -263,11 +342,13 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
     if (!api || !selectedProject) {
       return;
     }
+
+    cleanupDraft();
     const baseUrl = api.getBaseUrl();
     const url = `${baseUrl}newIssue?project=${encodeURIComponent(selectedProject.shortName)}`;
 
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, [api, selectedProject]);
+  }, [api, cleanupDraft, selectedProject]);
 
   useEffect(() => {
     if (!api) {
@@ -497,7 +578,16 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
     setAdditionalInfo('');
     setCopyStatus(null);
     setSelectedCustomFields([]);
-  }, []);
+
+    setResetClicksInRow(prev => {
+      const next = prev + 1;
+      if (next >= RESET_CLICKS_TO_UNLOCK_PLAYGROUND) {
+        onUnlockPlayground?.();
+        return RESET_CLICKS_TO_UNLOCK_PLAYGROUND;
+      }
+      return next;
+    });
+  }, [onUnlockPlayground]);
 
   useEffect(() => {
     onRegisterReset?.(onResetForm);
@@ -683,7 +773,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
       <div className="flex flex-col gap-4 pb-24">
         <TopPanel
           onResetForm={onResetForm}
-          onOpenPlayground={onOpenPlayground}
+          onOpenPlayground={playgroundUnlocked ? onOpenPlayground : undefined}
           projectSelectDisabled={computeProjectSelectDisabled({api, projectsLoading, draftLoading})}
           selectedProjectId={selectedProjectId}
           projects={projects}
@@ -743,7 +833,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPla
             <Optional when={Boolean(selectedProjectId)}>
               <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
                 <CustomFieldsConstructor
-                  key={`${selectedProjectId}:${draftRevision}`}
+                  key={selectedProjectId}
                   availableFields={customFields}
                   selectedFields={selectedCustomFields}
                   onChangeSelectedFields={setSelectedCustomFields}
