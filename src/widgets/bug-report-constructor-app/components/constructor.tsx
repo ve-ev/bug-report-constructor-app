@@ -166,29 +166,6 @@ const ConstructorImpl: React.FC = () => {
     return computeAdaptiveFields({format: outputFormat, template: activeTemplate});
   }, [activeTemplate, outputFormat]);
 
-  const customFieldsText = useMemo(() => {
-    if (!selectedCustomFields.length) {
-      return '';
-    }
-    const byId = new Map(customFields.map(f => [f.id, f] as const));
-
-    const lines = selectedCustomFields
-      .map(sel => {
-        const name = byId.get(sel.id)?.name;
-        if (!name) {
-          return '';
-        }
-        const value = sel.value.trim();
-        return value ? `- ${name}: ${value}` : `- ${name}`;
-      })
-      .filter(Boolean);
-
-    if (!lines.length) {
-      return '';
-    }
-    return `Custom fields:\n${lines.join('\n')}`;
-  }, [customFields, selectedCustomFields]);
-
   const customFieldsForDraftUrl = useMemo(() => {
     if (!selectedCustomFields.length) {
       return [];
@@ -206,18 +183,6 @@ const ConstructorImpl: React.FC = () => {
       .filter((v): v is {key: string; value?: string} => Boolean(v));
   }, [customFields, selectedCustomFields]);
 
-  const additionalInfoForDescription = useMemo(() => {
-    const base = additionalInfo.trim();
-    const extra = customFieldsText.trim();
-    if (!extra) {
-      return additionalInfo;
-    }
-    if (!base) {
-      return extra;
-    }
-    return `${base}\n\n${extra}`;
-  }, [additionalInfo, customFieldsText]);
-
   const description = buildBugReportDescription(
     {
       summary,
@@ -225,7 +190,7 @@ const ConstructorImpl: React.FC = () => {
       steps: steps.map(s => s.text),
       expected,
       actual,
-      additionalInfo: additionalInfoForDescription,
+      additionalInfo,
       attachments: []
     },
     outputFormat,
