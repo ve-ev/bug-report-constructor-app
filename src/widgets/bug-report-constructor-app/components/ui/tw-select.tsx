@@ -14,12 +14,22 @@ export type TwSelectProps<T extends string> = {
   className?: string;
 };
 
+const SEARCH_THRESHOLD = 10;
+
 export function TwSelect<T extends string>(props: TwSelectProps<T>): React.ReactElement {
   const {id, value, items, disabled, onChange, selectedLabel, className} = props;
 
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  const searchableItemsCount = useMemo(() => {
+    return items.filter(x => x.kind === 'item').length;
+  }, [items]);
+
+  const enableSearch = searchableItemsCount > SEARCH_THRESHOLD;
 
   const resolvedLabel = useMemo(() => {
     if (selectedLabel !== undefined) {
@@ -32,6 +42,33 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
   const close = useCallback(() => {
     setOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      return () => {
+        // no-op
+      };
+    }
+    setQuery('');
+    return () => {
+      // no-op
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !enableSearch) {
+      return () => {
+        // no-op
+      };
+    }
+    // Focus the search box when the popup opens.
+    const t = window.setTimeout(() => {
+      searchRef.current?.focus();
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
+    };
+  }, [enableSearch, open]);
 
   const onToggle = useCallback(() => {
     if (disabled) {
@@ -112,6 +149,20 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
     [value]
   );
 
+  const visibleItems = useMemo((): Array<TwSelectItem<T>> => {
+    if (!open || !enableSearch) {
+      return items;
+    }
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return items;
+    }
+    // When searching, show only matching items (drop separators for simplicity).
+    return items.filter(
+      item => item.kind === 'item' && item.label.toLowerCase().includes(q)
+    ) as Array<TwSelectItem<T>>;
+  }, [enableSearch, items, open, query]);
+
   return (
     <div ref={rootRef} className={(className ?? '') + ' relative min-w-0'}>
       <button
@@ -141,7 +192,21 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
           onKeyDown={onKeyDown}
           className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-auto rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-1 shadow-lg"
         >
-          {items.map(item =>
+          {enableSearch ? (
+            <div className="p-1">
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search…"
+                className="w-full rounded border border-[var(--ring-borders-color)] bg-transparent px-2 py-1 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+              />
+            </div>
+          ) : null}
+
+          {visibleItems.length ? (
+            visibleItems.map(item =>
             item.kind === 'separator' ? (
               <div key={item.id} className="my-1 border-t border-[var(--ring-borders-color)]"/>
             ) : (
@@ -158,6 +223,9 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
                 {item.label}
               </button>
             )
+            )
+          ) : (
+            <div className="px-3 py-2 text-[13px] leading-5 opacity-70">No matches</div>
           )}
         </div>
       ) : null}
