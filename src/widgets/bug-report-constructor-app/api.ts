@@ -1,4 +1,11 @@
-import {CustomField, DraftIssue, OutputFormatsPayload, Project, SavedBlocks} from './types.ts';
+import {
+    CustomField,
+    CustomFieldPossibleValue,
+    DraftIssue,
+    OutputFormatsPayload,
+    Project,
+    SavedBlocks
+} from './types.ts';
 import {HostAPI} from "../../../@types/globals";
 
 
@@ -35,19 +42,23 @@ export class API {
         return await this.host.fetchYouTrack(`users/me/drafts/${issueId}`, {method: 'POST', body: {project: project}});
     }
 
+    async getCFPossibleValues(issueId: string, fieldId: string): Promise<CustomFieldPossibleValue[]> {
+        return await this.host.fetchYouTrack(`issues/${issueId}/customFields/${fieldId}/possibleValues?$skip=0&fields=id,name,description`);
+    }
+
     async deleteDraft(issueId: string): Promise<void> {
         await this.host.fetchYouTrack(`users/me/drafts/${issueId}`, {method: 'DELETE'});
     }
 
     async getDraftCustomFields(issueId: string): Promise<CustomField[]> {
-        const result = await this.host.fetchYouTrack<{fields?: Array<{id: string; name: string}>}>(
-          `users/me/drafts/${issueId}?fields=id,fields(id,name)`
+        const result = await this.host.fetchYouTrack<{fields?: Array<{id: string; name: string; $type?: string}>}>(
+          `users/me/drafts/${issueId}?fields=id,fields(id,name,$type)`
         );
 
         const fields = result.fields ?? [];
         return fields
           .filter(f => Boolean(f && typeof f.id === 'string' && typeof f.name === 'string'))
-          .map(f => ({id: f.id, name: f.name}));
+          .map(f => ({id: f.id, name: f.name, type: typeof f.$type === 'string' ? f.$type : undefined}));
     }
 
     async getSavedBlocks(): Promise<SavedBlocks> {

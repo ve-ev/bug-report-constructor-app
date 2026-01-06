@@ -670,6 +670,8 @@ const ConstructorImpl: React.FC = () => {
               <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
                 <CustomFieldsConstructor
                   key={selectedProjectId}
+                  api={api}
+                  draftIssueId={draftIssueId}
                   availableFields={customFields}
                   selectedFields={selectedCustomFields}
                   onChangeSelectedFields={setSelectedCustomFields}

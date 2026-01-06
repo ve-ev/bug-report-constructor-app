@@ -1,17 +1,107 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {ChevronDownIcon, ChevronUpIcon, XMarkIcon} from '@heroicons/react/20/solid';
 
-import {CustomField, SelectedCustomField} from '../../../types.ts';
+import type {API} from '../../../api.ts';
+import {CustomField, CustomFieldPossibleValue, SelectedCustomField} from '../../../types.ts';
 import {TwButton} from '../../ui/tw-button.tsx';
 import {TwSelect, type TwSelectItem} from '../../ui/tw-select.tsx';
 
 export type CustomFieldsConstructorProps = {
+  api: API | null;
+  draftIssueId: string | null;
   availableFields: CustomField[];
   selectedFields: SelectedCustomField[];
   onChangeSelectedFields: React.Dispatch<React.SetStateAction<SelectedCustomField[]>>;
   loading?: boolean;
   error?: string | null;
 };
+
+type FieldValuesState =
+  | {status: 'idle'}
+  | {status: 'loading'}
+  | {status: 'loaded'; values: CustomFieldPossibleValue[]}
+  | {status: 'error'; error: string};
+
+const CF_TYPES_WITH_POSSIBLE_VALUES = new Set<string>([
+  'SingleEnumIssueCustomField',
+  'SingleUserIssueCustomField',
+  'SingleOwnedIssueCustomField',
+  'SingleBuildIssueCustomField',
+  'StateIssueCustomField'
+]);
+
+function isFieldWithPossibleValues(field: CustomField): boolean {
+  return Boolean(field.type && CF_TYPES_WITH_POSSIBLE_VALUES.has(field.type));
+}
+
+function shouldStartLoadingPossibleValues(state: FieldValuesState | undefined): boolean {
+  return !state || state.status === 'idle' || state.status === 'error';
+}
+
+function PossibleValueSelector({
+  fieldId,
+  valueId,
+  placeholder,
+  state,
+  onChange
+}: {
+  fieldId: string;
+  valueId: string;
+  placeholder: string;
+  state: FieldValuesState;
+  onChange: (id: string, name: string) => void;
+}): React.JSX.Element {
+  const items = useMemo((): Array<TwSelectItem<string>> => {
+    if (state.status === 'loading' || state.status === 'idle') {
+      return [{kind: 'item', value: '__loading__', label: 'Loading…', disabled: true}];
+    }
+    if (state.status === 'error') {
+      return [{kind: 'item', value: '__error__', label: 'Failed to load values', disabled: true}];
+    }
+    if (!state.values.length) {
+      return [{kind: 'item', value: '__no_values__', label: 'No values', disabled: true}];
+    }
+    return state.values.map(v => ({kind: 'item', value: v.id, label: v.name}));
+  }, [state]);
+
+  const selectedLabel = useMemo(() => {
+    if (!valueId) {
+      return placeholder;
+    }
+    const found = items.find(x => x.kind === 'item' && x.value === valueId);
+    return found && found.kind === 'item' ? found.label : placeholder;
+  }, [items, placeholder, valueId]);
+
+  const onSelect = useCallback(
+    (nextId: string) => {
+      if (!nextId) {
+        onChange('', '');
+        return;
+      }
+      const found = items.find(x => x.kind === 'item' && x.value === nextId);
+      const name = found && found.kind === 'item' ? found.label : '';
+      onChange(nextId, name);
+    },
+    [items, onChange]
+  );
+
+  return (
+    <div className="flex flex-col gap-1">
+      <TwSelect
+        id={`customField-${fieldId}`}
+        disabled={state.status === 'loading' || state.status === 'idle' || state.status === 'error'}
+        value={valueId}
+        items={items}
+        selectedLabel={selectedLabel}
+        onChange={onSelect}
+        className="min-w-[180px] w-full"
+      />
+      {state.status === 'error' ? (
+        <div className="text-[12px] leading-4 text-red-300/90">{state.error}</div>
+      ) : null}
+    </div>
+  );
+}
 
 const CustomFieldsExpandedBody: React.FC<{
   options: CustomField[];
@@ -21,8 +111,9 @@ const CustomFieldsExpandedBody: React.FC<{
   loading?: boolean;
   error?: string | null;
   selectedFieldEntities: {sel: SelectedCustomField; field: CustomField}[];
+  possibleValuesByFieldId: Record<string, FieldValuesState>;
   onRemove: (id: string) => void;
-  onValueChange: (id: string, value: string) => void;
+  onValueChange: (id: string, value: string, valueId?: string) => void;
 }> = ({
   options,
   placeholder,
@@ -31,6 +122,7 @@ const CustomFieldsExpandedBody: React.FC<{
   loading,
   error,
   selectedFieldEntities,
+  possibleValuesByFieldId,
   onRemove,
   onValueChange
 }) => {
@@ -91,13 +183,23 @@ const CustomFieldsExpandedBody: React.FC<{
               </div>
 
               <div className="mt-2">
-                <input
-                  type="text"
-                  value={sel.value}
-                  onChange={e => onValueChange(sel.id, e.target.value)}
-                  placeholder="Value (optional)"
-                  className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
-                />
+                {isFieldWithPossibleValues(field) ? (
+                  <PossibleValueSelector
+                    fieldId={field.id}
+                    valueId={sel.valueId ?? ''}
+                    placeholder="Select a value"
+                    state={possibleValuesByFieldId[field.id] ?? {status: 'idle'}}
+                    onChange={(nextId, nextName) => onValueChange(sel.id, nextName, nextId)}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={sel.value}
+                    onChange={e => onValueChange(sel.id, e.target.value)}
+                    placeholder="Type a value"
+                    className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -110,6 +212,8 @@ const CustomFieldsExpandedBody: React.FC<{
 };
 
 export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = ({
+  api,
+  draftIssueId,
   availableFields,
   selectedFields,
   onChangeSelectedFields,
@@ -118,6 +222,8 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
 }) => {
   const [collapsed, setCollapsed] = useState(true);
   const [selectValue, setSelectValue] = useState('');
+
+  const [possibleValuesByFieldId, setPossibleValuesByFieldId] = useState<Record<string, FieldValuesState>>({});
 
   const options = useMemo(() => {
     const selected = new Set(selectedFields.map(x => x.id));
@@ -139,8 +245,8 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
   );
 
   const onValueChange = useCallback(
-    (id: string, value: string) => {
-      onChangeSelectedFields(prev => prev.map(x => (x.id === id ? {...x, value} : x)));
+    (id: string, value: string, valueId?: string) => {
+      onChangeSelectedFields(prev => prev.map(x => (x.id === id ? {...x, value, valueId} : x)));
     },
     [onChangeSelectedFields]
   );
@@ -154,12 +260,37 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
         if (prev.some(x => x.id === id)) {
           return prev;
         }
-        return [...prev, {id, value: ''}];
+        return [...prev, {id, value: '', valueId: ''}];
       });
       setSelectValue('');
     },
     [onChangeSelectedFields]
   );
+
+  useEffect(() => {
+    if (!api || !draftIssueId) {
+      setPossibleValuesByFieldId({});
+      return;
+    }
+
+    const toLoad = selectedFieldEntities
+      .map(x => x.field)
+      .filter(isFieldWithPossibleValues)
+      .filter(field => shouldStartLoadingPossibleValues(possibleValuesByFieldId[field.id]));
+
+    for (const field of toLoad) {
+      setPossibleValuesByFieldId(prev => ({...prev, [field.id]: {status: 'loading'}}));
+      api
+        .getCFPossibleValues(draftIssueId, field.id)
+        .then(values => {
+          setPossibleValuesByFieldId(prev => ({...prev, [field.id]: {status: 'loaded', values}}));
+        })
+        .catch(e => {
+          const msg = e instanceof Error ? e.message : String(e);
+          setPossibleValuesByFieldId(prev => ({...prev, [field.id]: {status: 'error', error: msg}}));
+        });
+    }
+  }, [api, draftIssueId, possibleValuesByFieldId, selectedFieldEntities]);
 
   const placeholder = useMemo(() => {
     if (loading) {
@@ -201,6 +332,7 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
           loading={loading}
           error={error}
           selectedFieldEntities={selectedFieldEntities}
+          possibleValuesByFieldId={possibleValuesByFieldId}
           onRemove={onRemove}
           onValueChange={onValueChange}
         />

@@ -46,19 +46,28 @@ export interface Project{
 export interface SelectedCustomField {
   /** `CustomField.id` */
   id: string;
+  /**
+   * User-provided value (free-text) or the selected possible value name.
+   * This is what gets serialized into the draft URL.
+   */
   value: string;
+
+  /** Selected possible value id (for enum/user/build/state etc). */
+  valueId?: string;
 }
 
 export interface CustomField {
   id: string;
   name: string;
+
+  /** YouTrack entity type (e.g. `SingleEnumIssueCustomField`). */
+  type?: string;
 }
 
-export interface Issue {
+export interface CustomFieldPossibleValue {
   id: string;
-  summary: string;
-  project: Project;
-  customFields: SelectedCustomField[];
+  name: string;
+  description: string;
 }
 
 export interface DraftIssue {
