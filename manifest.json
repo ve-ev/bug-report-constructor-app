@@ -1,7 +1,7 @@
 {
   "name": "brc",
   "title": "Bug Report Constructor",
-  "description": "",
+  "description": "YouTrack app that helps you quickly assemble a consistent bug report from reusable blocks and a guided form and create an issue draft with the generated description.",
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "version": "1.0.0",
   "vendor": {
