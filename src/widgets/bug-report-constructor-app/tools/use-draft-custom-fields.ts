@@ -1,18 +1,19 @@
 import {useEffect, useState} from 'react';
 
 import type {API} from '../api.ts';
-import type {ProjectCustomField} from '../types.ts';
+import {CustomField} from '../types.ts';
 
-export function useProjectCustomFields(
+export function useDraftCustomFields(
   api: API | null,
-  projectId: string
-): {fields: ProjectCustomField[]; loading: boolean; error: string | null} {
-  const [fields, setFields] = useState<ProjectCustomField[]>([]);
+  draftIssueId: string | null,
+  reloadKey: number
+): {fields: CustomField[]; loading: boolean; error: string | null} {
+  const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!api || !projectId) {
+    if (!api || !draftIssueId) {
       setFields([]);
       setError(null);
       setLoading(false);
@@ -26,7 +27,7 @@ export function useProjectCustomFields(
       setError(null);
       setLoading(true);
       try {
-        const loaded = await api.getProjectCustomFields(projectId);
+        const loaded = await api.getDraftCustomFields(draftIssueId);
         if (disposed) {
           return;
         }
@@ -48,7 +49,7 @@ export function useProjectCustomFields(
     return () => {
       disposed = true;
     };
-  }, [api, projectId]);
+  }, [api, draftIssueId, reloadKey]);
 
   return {fields, loading, error};
 }

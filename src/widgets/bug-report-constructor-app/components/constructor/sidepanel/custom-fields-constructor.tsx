@@ -1,26 +1,26 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {ChevronDownIcon, ChevronUpIcon, XMarkIcon} from '@heroicons/react/20/solid';
 
-import type {ProjectCustomField, SelectedCustomField} from '../../../types.ts';
+import {CustomField, SelectedCustomField} from '../../../types.ts';
 import {TwButton} from '../../ui/tw-button.tsx';
 import {TwSelect, type TwSelectItem} from '../../ui/tw-select.tsx';
 
 export type CustomFieldsConstructorProps = {
-  availableFields: ProjectCustomField[];
+  availableFields: CustomField[];
   selectedFields: SelectedCustomField[];
-  onChangeSelectedFields: (next: SelectedCustomField[]) => void;
+  onChangeSelectedFields: React.Dispatch<React.SetStateAction<SelectedCustomField[]>>;
   loading?: boolean;
   error?: string | null;
 };
 
 const CustomFieldsExpandedBody: React.FC<{
-  options: ProjectCustomField[];
+  options: CustomField[];
   placeholder: string;
   selectValue: string;
   onSelectChange: (next: string) => void;
   loading?: boolean;
   error?: string | null;
-  selectedFieldEntities: {sel: SelectedCustomField; field: ProjectCustomField}[];
+  selectedFieldEntities: {sel: SelectedCustomField; field: CustomField}[];
   onRemove: (id: string) => void;
   onValueChange: (id: string, value: string) => void;
 }> = ({
@@ -35,8 +35,14 @@ const CustomFieldsExpandedBody: React.FC<{
   onValueChange
 }) => {
   const items = useMemo((): Array<TwSelectItem<string>> => {
-    return options.map(f => ({kind: 'item', value: f.id, label: f.field.name}));
-  }, [options]);
+    if (loading && !options.length) {
+      return [{kind: 'item', value: '__loading__', label: 'Loading…', disabled: true}];
+    }
+    if (!options.length) {
+      return [{kind: 'item', value: '__no_fields__', label: 'No fields available', disabled: true}];
+    }
+    return options.map(f => ({kind: 'item', value: f.id, label: f.name}));
+  }, [loading, options]);
 
   const selectedLabel = useMemo(() => {
     if (!selectValue) {
@@ -46,25 +52,19 @@ const CustomFieldsExpandedBody: React.FC<{
     return found && found.kind === 'item' ? found.label : placeholder;
   }, [items, placeholder, selectValue]);
 
-  const showSelect = Boolean(loading) || options.length > 0;
-
   return (
     <div className="flex flex-col gap-2">
-      {showSelect ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <TwSelect
-            id="customFields"
-            disabled={Boolean(loading) || !options.length}
-            value={selectValue}
-            items={items}
-            selectedLabel={selectedLabel}
-            onChange={onSelectChange}
-            className="min-w-[180px] flex-1"
-          />
-        </div>
-      ) : (
-        <div className="text-[13px] opacity-70">No more fields to add.</div>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <TwSelect
+          id="customFields"
+          disabled={Boolean(loading) || !options.length}
+          value={selectValue}
+          items={items}
+          selectedLabel={selectedLabel}
+          onChange={onSelectChange}
+          className="min-w-[180px] flex-1"
+        />
+      </div>
 
       {error ? (
         <div className="rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-[13px] leading-5">{error}</div>
@@ -78,7 +78,7 @@ const CustomFieldsExpandedBody: React.FC<{
               className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3"
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1 break-words text-[13px] font-semibold leading-5">{field.field.name}</div>
+                <div className="min-w-0 flex-1 break-words text-[13px] font-semibold leading-5">{field.name}</div>
                 <TwButton
                   size="xs"
                   variant="dangerGhost"
@@ -116,7 +116,7 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
   loading,
   error
 }) => {
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [selectValue, setSelectValue] = useState('');
 
   const options = useMemo(() => {
@@ -128,21 +128,21 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
     const byId = new Map(availableFields.map(f => [f.id, f] as const));
     return selectedFields
       .map(sel => ({sel, field: byId.get(sel.id)}))
-      .filter(x => Boolean(x.field)) as {sel: SelectedCustomField; field: ProjectCustomField}[];
+      .filter(x => Boolean(x.field)) as {sel: SelectedCustomField; field: CustomField}[];
   }, [availableFields, selectedFields]);
 
   const onRemove = useCallback(
     (id: string) => {
-      onChangeSelectedFields(selectedFields.filter(x => x.id !== id));
+      onChangeSelectedFields(prev => prev.filter(x => x.id !== id));
     },
-    [onChangeSelectedFields, selectedFields]
+    [onChangeSelectedFields]
   );
 
   const onValueChange = useCallback(
     (id: string, value: string) => {
-      onChangeSelectedFields(selectedFields.map(x => (x.id === id ? {...x, value} : x)));
+      onChangeSelectedFields(prev => prev.map(x => (x.id === id ? {...x, value} : x)));
     },
-    [onChangeSelectedFields, selectedFields]
+    [onChangeSelectedFields]
   );
 
   const onSelectChange = useCallback(
@@ -150,13 +150,15 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
       if (!id) {
         return;
       }
-      if (selectedFields.some(x => x.id === id)) {
-        return;
-      }
-      onChangeSelectedFields([...selectedFields, {id, value: ''}]);
+      onChangeSelectedFields(prev => {
+        if (prev.some(x => x.id === id)) {
+          return prev;
+        }
+        return [...prev, {id, value: ''}];
+      });
       setSelectValue('');
     },
-    [onChangeSelectedFields, selectedFields]
+    [onChangeSelectedFields]
   );
 
   const placeholder = useMemo(() => {

@@ -45,7 +45,7 @@ function buildOutputFormatItems(payload: OutputFormatsPayload): Array<TwSelectIt
   ];
 
   if (payload.formats.length) {
-    base.push({kind: 'separator'});
+    base.push({kind: 'separator', id: 'custom_formats_separator'});
   }
 
   for (const f of payload.formats) {

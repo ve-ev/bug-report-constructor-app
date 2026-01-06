@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 export type TwSelectItem<T extends string> =
-  | {kind: 'separator'}
+  | {kind: 'separator'; id: string}
   | {kind: 'item'; value: T; label: string; disabled?: boolean};
 
 export type TwSelectProps<T extends string> = {
@@ -99,6 +99,19 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
     [close, onChange]
   );
 
+  const resolveItemClass = useCallback(
+    (item: Extract<TwSelectItem<T>, {kind: 'item'}>) => {
+      if (item.disabled) {
+        return 'w-full cursor-not-allowed rounded px-3 py-2 text-left text-[13px] leading-5 opacity-60';
+      }
+      if (item.value === value) {
+        return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[rgba(236,72,153,0.12)]';
+      }
+      return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[rgba(236,72,153,0.10)]';
+    },
+    [value]
+  );
+
   return (
     <div ref={rootRef} className={(className ?? '') + ' relative min-w-0'}>
       <button
@@ -128,9 +141,9 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
           onKeyDown={onKeyDown}
           className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-auto rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-1 shadow-lg"
         >
-          {items.map((item, idx) =>
+          {items.map(item =>
             item.kind === 'separator' ? (
-              <div key={'separator_' + idx} className="my-1 border-t border-[var(--ring-borders-color)]"/>
+              <div key={item.id} className="my-1 border-t border-[var(--ring-borders-color)]"/>
             ) : (
               <button
                 key={item.value}
@@ -140,13 +153,7 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
                 data-value={item.value}
                 data-disabled={item.disabled ? 'true' : 'false'}
                 onClick={onItemClick}
-                className={
-                  item.disabled
-                    ? 'w-full cursor-not-allowed rounded px-3 py-2 text-left text-[13px] leading-5 opacity-60'
-                    : item.value === value
-                      ? 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[rgba(236,72,153,0.12)]'
-                      : 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[rgba(236,72,153,0.10)]'
-                }
+                className={resolveItemClass(item)}
               >
                 {item.label}
               </button>

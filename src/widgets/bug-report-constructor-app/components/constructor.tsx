@@ -25,7 +25,9 @@ import {OutputFormatsForm} from './constructor/sidepanel/output-formats-form.tsx
 import {computeAdaptiveFields} from '../utils/template-ui.ts';
 import {CustomFieldsConstructor} from './constructor/sidepanel/custom-fields-constructor.tsx';
 import {useUserProjects} from '../tools/use-user-projects.ts';
-import {useProjectCustomFields} from '../tools/use-project-custom-fields.ts';
+import {useDraftCustomFields} from '../tools/use-draft-custom-fields.ts';
+import {useDraftIssue} from '../tools/use-draft-issue.ts';
+import {useAutoClearMessage} from '../tools/use-auto-clear-message.ts';
 import {IssueForm} from './constructor/form/issue-form.tsx';
 import {GeneratedDescription} from './constructor/sidepanel/generated-description.tsx';
 import {ActiveDragOverlay} from './constructor/active-drag-overlay.tsx';
@@ -51,41 +53,60 @@ function normalizeSelectionForSavedBlock(text: string): string {
     .replace(/\s+/g, ' ');
 }
 
+function resolveActiveTemplate(outputFormat: OutputFormat, templatesById: Record<string, string>): string {
+  if (outputFormat === 'markdown_default') {
+    return '';
+  }
+  return templatesById[outputFormat] ?? '';
+}
+
+function computeProjectSelectDisabled(params: {
+  api: API | null;
+  projectsLoading: boolean;
+  draftLoading: boolean;
+}): boolean {
+  return !params.api || params.projectsLoading || params.draftLoading;
+}
+
+function mergeNullableErrors(primary: string | null, secondary: string | null): string | null {
+  return primary ?? secondary;
+}
+
 export type ConstructorProps = {
   onRegisterReset?: (fn: (() => void) | null) => void;
+  onOpenPlayground?: () => void;
 };
 
-const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
+const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset, onOpenPlayground}) => {
   const [api, setApi] = useState<API | null>(null);
 
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedCustomFields, setSelectedCustomFields] = useState<SelectedCustomField[]>([]);
 
   const {projects, loading: projectsLoading, error: projectsError} = useUserProjects(api);
+
+  const {
+    draftIssueId,
+    loading: draftLoading,
+    error: draftError,
+    revision: draftRevision
+  } = useDraftIssue(api, selectedProjectId);
+
   const {
     fields: customFields,
     loading: customFieldsLoading,
     error: customFieldsError
-  } = useProjectCustomFields(api, selectedProjectId);
+  } = useDraftCustomFields(api, draftIssueId, draftRevision);
 
   const [blocksLoading, setBlocksLoading] = useState(false);
   const [blocksSaving, setBlocksSaving] = useState(false);
   const [blocksError, setBlocksError] = useState<string | null>(null);
   const [blocksMessage, setBlocksMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let t: number | undefined;
-    if (blocksMessage) {
-      t = window.setTimeout(() => {
-        setBlocksMessage(null);
-      }, MESSAGE_HIDE_MS);
-    }
-    return () => {
-      if (t !== undefined) {
-        window.clearTimeout(t);
-      }
-    };
-  }, [blocksMessage]);
+  const clearBlocksMessage = useCallback(() => {
+    setBlocksMessage(null);
+  }, []);
+  useAutoClearMessage(blocksMessage, clearBlocksMessage, MESSAGE_HIDE_MS);
 
   const selectedProject = useMemo(() => {
     if (!selectedProjectId) {
@@ -121,19 +142,10 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
   const [outputFormatsError, setOutputFormatsError] = useState<string | null>(null);
   const [outputFormatsMessage, setOutputFormatsMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let t: number | undefined;
-    if (outputFormatsMessage) {
-      t = window.setTimeout(() => {
-        setOutputFormatsMessage(null);
-      }, MESSAGE_HIDE_MS);
-    }
-    return () => {
-      if (t !== undefined) {
-        window.clearTimeout(t);
-      }
-    };
-  }, [outputFormatsMessage]);
+  const clearOutputFormatsMessage = useCallback(() => {
+    setOutputFormatsMessage(null);
+  }, []);
+  useAutoClearMessage(outputFormatsMessage, clearOutputFormatsMessage, MESSAGE_HIDE_MS);
 
   const [outputFormats, setOutputFormats] = useState<OutputFormatsPayload>({
     activeFormat: 'markdown_default',
@@ -173,7 +185,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     return map;
   }, [outputFormats.formats]);
 
-  const activeTemplate = outputFormat === 'markdown_default' ? '' : (templatesById[outputFormat] ?? '');
+  const activeTemplate = resolveActiveTemplate(outputFormat, templatesById);
 
   const adaptiveFields = React.useMemo(() => {
     return computeAdaptiveFields({format: outputFormat, template: activeTemplate});
@@ -187,7 +199,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
 
     const lines = selectedCustomFields
       .map(sel => {
-        const name = byId.get(sel.id)?.field.name;
+        const name = byId.get(sel.id)?.name;
         if (!name) {
           return '';
         }
@@ -484,6 +496,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
     setActual('');
     setAdditionalInfo('');
     setCopyStatus(null);
+    setSelectedCustomFields([]);
   }, []);
 
   useEffect(() => {
@@ -670,7 +683,8 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
       <div className="flex flex-col gap-4 pb-24">
         <TopPanel
           onResetForm={onResetForm}
-          projectSelectDisabled={!api || projectsLoading}
+          onOpenPlayground={onOpenPlayground}
+          projectSelectDisabled={computeProjectSelectDisabled({api, projectsLoading, draftLoading})}
           selectedProjectId={selectedProjectId}
           projects={projects}
           projectsLoading={projectsLoading}
@@ -729,11 +743,12 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({onRegisterReset}) => {
             <Optional when={Boolean(selectedProjectId)}>
               <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-3">
                 <CustomFieldsConstructor
+                  key={`${selectedProjectId}:${draftRevision}`}
                   availableFields={customFields}
                   selectedFields={selectedCustomFields}
                   onChangeSelectedFields={setSelectedCustomFields}
                   loading={customFieldsLoading}
-                  error={customFieldsError}
+                  error={mergeNullableErrors(draftError, customFieldsError)}
                 />
               </div>
             </Optional>

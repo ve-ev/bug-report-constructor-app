@@ -43,13 +43,8 @@ export interface Project{
   shortName: string;
 }
 
-export interface ProjectCustomField {
-  id: string;
-  field: CustomField;
-}
-
 export interface SelectedCustomField {
-  /** `ProjectCustomField.id` */
+  /** `CustomField.id` */
   id: string;
   value: string;
 }
@@ -57,4 +52,15 @@ export interface SelectedCustomField {
 export interface CustomField {
   id: string;
   name: string;
+}
+
+export interface Issue {
+  id: string;
+  summary: string;
+  project: Project;
+  customFields: SelectedCustomField[];
+}
+
+export interface DraftIssue {
+  id: string;
 }
