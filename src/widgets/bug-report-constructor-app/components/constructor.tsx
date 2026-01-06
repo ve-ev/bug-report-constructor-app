@@ -65,6 +65,7 @@ const ConstructorImpl: React.FC = () => {
     api,
     selectedProjectId,
     setSelectedProjectId,
+    setDraftUrlData,
     draftIssueId,
     draftError,
     draftRevision,
@@ -188,6 +189,23 @@ const ConstructorImpl: React.FC = () => {
     return `Custom fields:\n${lines.join('\n')}`;
   }, [customFields, selectedCustomFields]);
 
+  const customFieldsForDraftUrl = useMemo(() => {
+    if (!selectedCustomFields.length) {
+      return [];
+    }
+    const byId = new Map(customFields.map(f => [f.id, f] as const));
+    return selectedCustomFields
+      .map(sel => {
+        const key = byId.get(sel.id)?.name ?? '';
+        if (!key) {
+          return null;
+        }
+        const value = sel.value.trim();
+        return value ? {key, value} : {key};
+      })
+      .filter((v): v is {key: string; value?: string} => Boolean(v));
+  }, [customFields, selectedCustomFields]);
+
   const additionalInfoForDescription = useMemo(() => {
     const base = additionalInfo.trim();
     const extra = customFieldsText.trim();
@@ -213,6 +231,10 @@ const ConstructorImpl: React.FC = () => {
     outputFormat,
     {templatesById}
   );
+
+  useEffect(() => {
+    setDraftUrlData({summary, description, customFields: customFieldsForDraftUrl});
+  }, [customFieldsForDraftUrl, description, setDraftUrlData, summary]);
 
   useCallback((next: string) => {
     setSelectedProjectId(next);

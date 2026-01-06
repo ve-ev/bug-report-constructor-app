@@ -6,6 +6,7 @@ import {useUserProjects} from '../tools/use-user-projects.ts';
 import {useDraftIssue} from '../tools/use-draft-issue.ts';
 import type {TopPanelProps} from '../components/top-panel.tsx';
 import type {BottomPanelProps} from '../components/bottom-panel.tsx';
+import {buildDraftIssueUrl, type DraftUrlCustomField} from '../tools/draft-url.ts';
 
 const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
 
@@ -27,6 +28,7 @@ export type ConstructorStore = {
   cleanupDraft: () => void;
   createDraftDisabled: boolean;
   onCreateDraft: () => void;
+  setDraftUrlData: (data: {summary: string; description: string; customFields: DraftUrlCustomField[]}) => void;
 
   showPlayground: boolean;
   openPlayground: () => void;
@@ -53,6 +55,17 @@ export function useConstructorStore(): ConstructorStore {
 export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({children}) => {
   const [api, setApi] = useState<API | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+
+  const draftUrlDataRef = useRef<{summary: string; description: string; customFields: DraftUrlCustomField[]}>(
+    {summary: '', description: '', customFields: []}
+  );
+
+  const setDraftUrlData = useCallback(
+    (data: {summary: string; description: string; customFields: DraftUrlCustomField[]}) => {
+      draftUrlDataRef.current = data;
+    },
+    []
+  );
 
   const apiRef = useRef<API | null>(null);
   useEffect(() => {
@@ -159,7 +172,14 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     }
     cleanupDraft();
     const baseUrl = apiInstance.getBaseUrl();
-    const url = `${baseUrl}newIssue?project=${encodeURIComponent(selectedProject.shortName)}`;
+    const {summary, description, customFields} = draftUrlDataRef.current;
+    const url = buildDraftIssueUrl({
+      baseUrl,
+      projectShortName: selectedProject.shortName,
+      summary,
+      description,
+      customFields
+    });
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [cleanupDraft, selectedProject]);
 
@@ -237,6 +257,7 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     cleanupDraft,
     createDraftDisabled,
     onCreateDraft,
+    setDraftUrlData,
     showPlayground,
     openPlayground,
     closePlayground,
