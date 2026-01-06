@@ -30,7 +30,7 @@ import {GeneratedDescription} from './constructor/sidepanel/generated-descriptio
 import {ActiveDragOverlay} from './constructor/active-drag-overlay.tsx';
 import {Optional} from './ui/optional.tsx';
 import {MESSAGE_HIDE_MS} from '../utils/ui-constants.ts';
-import {useConstructorStore} from '../store/constructor-store.tsx';
+import {useConstructorStore} from '../store/constructor-store-context.ts';
 
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;

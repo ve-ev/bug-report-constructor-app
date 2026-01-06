@@ -1,56 +1,14 @@
-import React, {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {API} from '../api.ts';
-import type {Project} from '../types.ts';
 import {useUserProjects} from '../tools/use-user-projects.ts';
 import {useDraftIssue} from '../tools/use-draft-issue.ts';
 import type {TopPanelProps} from '../components/top-panel.tsx';
 import type {BottomPanelProps} from '../components/bottom-panel.tsx';
 import {buildDraftIssueUrl, type DraftUrlCustomField} from '../tools/draft-url.ts';
+import {ConstructorStoreContext, type ConstructorStore} from './constructor-store-context.ts';
 
 const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
-
-export type ConstructorStore = {
-  api: API | null;
-
-  selectedProjectId: string;
-  setSelectedProjectId: (next: string) => void;
-
-  projects: Project[];
-  projectsLoading: boolean;
-  projectsError: string | null;
-
-  draftIssueId: string | null;
-  draftLoading: boolean;
-  draftError: string | null;
-  draftRevision: number;
-
-  cleanupDraft: () => void;
-  createDraftDisabled: boolean;
-  onCreateDraft: () => void;
-  setDraftUrlData: (data: {summary: string; description: string; customFields: DraftUrlCustomField[]}) => void;
-
-  showPlayground: boolean;
-  openPlayground: () => void;
-  closePlayground: () => void;
-  playgroundUnlocked: boolean;
-
-  resetSignal: number;
-  triggerReset: () => void;
-
-  topPanelProps: TopPanelProps;
-  bottomPanelProps: BottomPanelProps;
-};
-
-const ConstructorStoreContext = createContext<ConstructorStore | null>(null);
-
-export function useConstructorStore(): ConstructorStore {
-  const ctx = useContext(ConstructorStoreContext);
-  if (!ctx) {
-    throw new Error('useConstructorStore must be used within ConstructorStoreProvider');
-  }
-  return ctx;
-}
 
 export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({children}) => {
   const [api, setApi] = useState<API | null>(null);
