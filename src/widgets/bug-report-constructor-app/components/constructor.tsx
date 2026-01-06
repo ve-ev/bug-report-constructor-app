@@ -11,7 +11,6 @@ import {
 } from '@dnd-kit/core';
 import {arrayMove} from '@dnd-kit/sortable';
 
-import {API} from '../api.ts';
 import type {OutputFormatsPayload, SavedBlocks, SelectedCustomField} from '../types.ts';
 import {SummaryRow} from './constructor/summary-row.tsx';
 import {appendSummaryChunk, normalizeSummaryInsert} from '../utils/summary-row-utils.ts';
@@ -24,19 +23,14 @@ import {copyToClipboard} from '../tools/clipboard.ts';
 import {OutputFormatsForm} from './constructor/sidepanel/output-formats-form.tsx';
 import {computeAdaptiveFields} from '../utils/template-ui.ts';
 import {CustomFieldsConstructor} from './constructor/sidepanel/custom-fields-constructor.tsx';
-import {useUserProjects} from '../tools/use-user-projects.ts';
 import {useDraftCustomFields} from '../tools/use-draft-custom-fields.ts';
-import {useDraftIssue} from '../tools/use-draft-issue.ts';
 import {useAutoClearMessage} from '../tools/use-auto-clear-message.ts';
 import {IssueForm} from './constructor/form/issue-form.tsx';
 import {GeneratedDescription} from './constructor/sidepanel/generated-description.tsx';
 import {ActiveDragOverlay} from './constructor/active-drag-overlay.tsx';
 import {Optional} from './ui/optional.tsx';
-import {TopPanel} from './top-panel.tsx';
-import {BottomPanel} from './bottom-panel.tsx';
 import {MESSAGE_HIDE_MS} from '../utils/ui-constants.ts';
-
-const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
+import {useConstructorStore} from '../store/constructor-store.tsx';
 
 function resolveActiveOutputFormat(payload: OutputFormatsPayload): OutputFormat {
   const active = payload.activeFormat;
@@ -62,116 +56,28 @@ function resolveActiveTemplate(outputFormat: OutputFormat, templatesById: Record
   return templatesById[outputFormat] ?? '';
 }
 
-function computeProjectSelectDisabled(params: {
-  api: API | null;
-  projectsLoading: boolean;
-  draftLoading: boolean;
-}): boolean {
-  return !params.api || params.projectsLoading || params.draftLoading;
-}
-
 function mergeNullableErrors(primary: string | null, secondary: string | null): string | null {
   return primary ?? secondary;
 }
 
-export type ConstructorProps = {
-  onRegisterReset?: (fn: (() => void) | null) => void;
-  onOpenPlayground?: () => void;
-  playgroundUnlocked?: boolean;
-  onUnlockPlayground?: () => void;
-};
-
-const ConstructorImpl: React.FC<ConstructorProps> = ({
-  onRegisterReset,
-  onOpenPlayground,
-  playgroundUnlocked,
-  onUnlockPlayground
-}) => {
-  const [api, setApi] = useState<API | null>(null);
-
-  const apiRef = useRef<API | null>(null);
-  useEffect(() => {
-    apiRef.current = api;
-  }, [api]);
-
-  const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [selectedCustomFields, setSelectedCustomFields] = useState<SelectedCustomField[]>([]);
-
-  const {projects, loading: projectsLoading, error: projectsError} = useUserProjects(api);
-
+const ConstructorImpl: React.FC = () => {
   const {
+    api,
+    selectedProjectId,
+    setSelectedProjectId,
     draftIssueId,
-    loading: draftLoading,
-    error: draftError,
-    revision: draftRevision
-  } = useDraftIssue(api, selectedProjectId);
+    draftError,
+    draftRevision,
+    resetSignal
+  } = useConstructorStore();
 
-  const draftIssueIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    draftIssueIdRef.current = draftIssueId;
-  }, [draftIssueId]);
-
-  const cleanupDraft = useCallback(() => {
-    const id = draftIssueIdRef.current;
-    const apiInstance = apiRef.current;
-    if (!apiInstance || !id) {
-      return;
-    }
-    // Ensure cleanup happens at most once per draft id.
-    draftIssueIdRef.current = null;
-    apiInstance.deleteDraft(id).catch(() => {
-      // best-effort
-    });
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', cleanupDraft);
-    window.addEventListener('pagehide', cleanupDraft);
-    window.addEventListener('popstate', cleanupDraft);
-    window.addEventListener('hashchange', cleanupDraft);
-
-    const historyApi = window.history;
-    const origPushState = historyApi?.pushState?.bind(historyApi);
-    const origReplaceState = historyApi?.replaceState?.bind(historyApi);
-
-    if (origPushState) {
-      historyApi.pushState = (...args: Parameters<History['pushState']>) => {
-        cleanupDraft();
-        return origPushState(...args);
-      };
-    }
-
-    if (origReplaceState) {
-      historyApi.replaceState = (...args: Parameters<History['replaceState']>) => {
-        cleanupDraft();
-        return origReplaceState(...args);
-      };
-    }
-
-    return () => {
-      window.removeEventListener('beforeunload', cleanupDraft);
-      window.removeEventListener('pagehide', cleanupDraft);
-      window.removeEventListener('popstate', cleanupDraft);
-      window.removeEventListener('hashchange', cleanupDraft);
-
-      if (origPushState) {
-        historyApi.pushState = origPushState;
-      }
-      if (origReplaceState) {
-        historyApi.replaceState = origReplaceState;
-      }
-
-      cleanupDraft();
-    };
-  }, [cleanupDraft]);
+  const [selectedCustomFields, setSelectedCustomFields] = useState<SelectedCustomField[]>([]);
 
   const {
     fields: customFields,
     loading: customFieldsLoading,
     error: customFieldsError
   } = useDraftCustomFields(api, draftIssueId, draftRevision);
-
-  const [, setResetClicksInRow] = useState(0);
 
   const [blocksLoading, setBlocksLoading] = useState(false);
   const [blocksSaving, setBlocksSaving] = useState(false);
@@ -182,13 +88,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({
     setBlocksMessage(null);
   }, []);
   useAutoClearMessage(blocksMessage, clearBlocksMessage, MESSAGE_HIDE_MS);
-
-  const selectedProject = useMemo(() => {
-    if (!selectedProjectId) {
-      return null;
-    }
-    return projects.find(p => p.id === selectedProjectId) ?? null;
-  }, [projects, selectedProjectId]);
 
   const [savedBlocks, setSavedBlocks] = useState<SavedBlocks>(EMPTY_SAVED_BLOCKS);
   const [activeTab, setActiveTab] = useState<SavedBlocksTab>('summary');
@@ -315,40 +214,10 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({
     {templatesById}
   );
 
-  useEffect(() => {
-    let disposed = false;
-    (async () => {
-      const host = await YTApp.register({
-        onRefresh: () => {
-          cleanupDraft();
-        }
-      });
-      if (disposed) {
-        return;
-      }
-      setApi(new API(host));
-    })();
-    return () => {
-      disposed = true;
-    };
-  }, [cleanupDraft]);
-
-  const onSelectedProjectIdChange = useCallback((next: string) => {
+  useCallback((next: string) => {
     setSelectedProjectId(next);
     setSelectedCustomFields([]);
-  }, []);
-
-  const onCreateDraft = useCallback(() => {
-    if (!api || !selectedProject) {
-      return;
-    }
-
-    cleanupDraft();
-    const baseUrl = api.getBaseUrl();
-    const url = `${baseUrl}newIssue?project=${encodeURIComponent(selectedProject.shortName)}`;
-
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, [api, cleanupDraft, selectedProject]);
+  }, [setSelectedProjectId]);
 
   useEffect(() => {
     if (!api) {
@@ -578,23 +447,14 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({
     setAdditionalInfo('');
     setCopyStatus(null);
     setSelectedCustomFields([]);
-
-    setResetClicksInRow(prev => {
-      const next = prev + 1;
-      if (next >= RESET_CLICKS_TO_UNLOCK_PLAYGROUND) {
-        onUnlockPlayground?.();
-        return RESET_CLICKS_TO_UNLOCK_PLAYGROUND;
-      }
-      return next;
-    });
-  }, [onUnlockPlayground]);
+  }, []);
 
   useEffect(() => {
-    onRegisterReset?.(onResetForm);
-    return () => {
-      onRegisterReset?.(null);
-    };
-  }, [onRegisterReset, onResetForm]);
+    if (resetSignal <= 0) {
+      return;
+    }
+    onResetForm();
+  }, [onResetForm, resetSignal]);
 
   const insertSummaryChunk = useCallback((text: string) => {
     if (summaryInsertRef.current) {
@@ -770,18 +630,7 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
-      <div className="flex flex-col gap-4 pb-24">
-        <TopPanel
-          onResetForm={onResetForm}
-          onOpenPlayground={playgroundUnlocked ? onOpenPlayground : undefined}
-          projectSelectDisabled={computeProjectSelectDisabled({api, projectsLoading, draftLoading})}
-          selectedProjectId={selectedProjectId}
-          projects={projects}
-          projectsLoading={projectsLoading}
-          onSelectedProjectIdChange={onSelectedProjectIdChange}
-          projectsError={projectsError}
-        />
-
+      <div className="flex flex-col gap-4">
         <SummaryRow
           value={summary}
           onValueChange={setSummary}
@@ -873,8 +722,6 @@ const ConstructorImpl: React.FC<ConstructorProps> = ({
           </div>
         </div>
       </div>
-
-      <BottomPanel createDraftDisabled={!api || !selectedProjectId} onCreateDraft={onCreateDraft}/>
 
       <DragOverlay>
         <ActiveDragOverlay activeDrag={activeDrag}/>
