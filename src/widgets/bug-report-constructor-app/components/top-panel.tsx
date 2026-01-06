@@ -28,13 +28,14 @@ export const TopPanel: React.FC<TopPanelProps> = props => {
   } = props;
 
   const projectsSelectItems = useMemo((): Array<TwSelectItem<string>> => {
-    const base: Array<TwSelectItem<string>> = [
-      {
-        kind: 'item',
-        value: '',
-        label: projectsLoading ? 'Loading projects…' : 'Select a project…'
-      }
-    ];
+    const base: Array<TwSelectItem<string>> = [];
+
+    // Keep the placeholder text only as the closed control label (via `selectedLabel`).
+    // Do not show a selectable placeholder option in the popup.
+    if (!projectsLoading && !projects.length) {
+      base.push({kind: 'item', value: '__no_projects__', label: 'No projects available', disabled: true});
+      return base;
+    }
     for (const p of projects) {
       base.push({kind: 'item', value: p.id, label: `${p.name} (${p.shortName})`});
     }

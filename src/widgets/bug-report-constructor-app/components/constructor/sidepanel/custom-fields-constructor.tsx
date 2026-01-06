@@ -35,14 +35,8 @@ const CustomFieldsExpandedBody: React.FC<{
   onValueChange
 }) => {
   const items = useMemo((): Array<TwSelectItem<string>> => {
-    const base: Array<TwSelectItem<string>> = [
-      {kind: 'item', value: '', label: placeholder, disabled: true}
-    ];
-    for (const f of options) {
-      base.push({kind: 'item', value: f.id, label: f.field.name});
-    }
-    return base;
-  }, [options, placeholder]);
+    return options.map(f => ({kind: 'item', value: f.id, label: f.field.name}));
+  }, [options]);
 
   const selectedLabel = useMemo(() => {
     if (!selectValue) {
@@ -52,19 +46,25 @@ const CustomFieldsExpandedBody: React.FC<{
     return found && found.kind === 'item' ? found.label : placeholder;
   }, [items, placeholder, selectValue]);
 
+  const showSelect = Boolean(loading) || options.length > 0;
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <TwSelect
-          id="customFields"
-          disabled={Boolean(loading) || !options.length}
-          value={selectValue}
-          items={items}
-          selectedLabel={selectedLabel}
-          onChange={onSelectChange}
-          className="min-w-[180px] flex-1"
-        />
-      </div>
+      {showSelect ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <TwSelect
+            id="customFields"
+            disabled={Boolean(loading) || !options.length}
+            value={selectValue}
+            items={items}
+            selectedLabel={selectedLabel}
+            onChange={onSelectChange}
+            className="min-w-[180px] flex-1"
+          />
+        </div>
+      ) : (
+        <div className="text-[13px] opacity-70">No more fields to add.</div>
+      )}
 
       {error ? (
         <div className="rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-[13px] leading-5">{error}</div>
@@ -164,7 +164,7 @@ export const CustomFieldsConstructor: React.FC<CustomFieldsConstructorProps> = (
       return 'Loading…';
     }
     if (options.length) {
-      return 'Select a field…';
+      return 'Add a field…';
     }
     return 'No fields available';
   }, [loading, options.length]);
