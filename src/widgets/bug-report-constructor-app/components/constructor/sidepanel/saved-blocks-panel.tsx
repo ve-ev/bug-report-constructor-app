@@ -257,7 +257,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
   ];
 
   return (
-    <div className="rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)]">
+    <div className="overflow-hidden rounded-md border border-[var(--ring-borders-color)] border-l-4 border-l-pink-400/70 bg-[var(--ring-content-background-color)] shadow-sm ring-1 ring-pink-400/20">
       <div className="flex flex-col gap-2 border-b border-[var(--ring-borders-color)] p-3">
         <div className="text-[13px] font-semibold">Saved Blocks</div>
         <div className="flex flex-wrap gap-2">
