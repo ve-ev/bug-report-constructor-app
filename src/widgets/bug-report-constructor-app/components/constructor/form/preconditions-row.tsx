@@ -19,7 +19,7 @@ export type PreconditionsRowProps = {
   onSaveToSavedBlocks?: () => void;
 };
 
-const DEFAULT_ROWS = 5;
+const DEFAULT_ROWS = 3;
 
 export const PRECONDITIONS_DROP_ID = 'issue-drop-preconditions';
 
@@ -263,7 +263,7 @@ export const PreconditionsRow: React.FC<PreconditionsRowProps> = ({
           <textarea
             id="issue-preconditions"
             ref={textareaRef}
-            className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-3 outline-none focus:ring-2 focus:ring-pink-400/60"
+            className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
             placeholder="Drop Preconditions blocks here or type them…"
             value={value}
             onChange={onChange}
