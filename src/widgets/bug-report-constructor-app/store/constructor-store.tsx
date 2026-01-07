@@ -6,11 +6,12 @@ import {useDraftIssue} from '../tools/use-draft-issue.ts';
 import type {TopPanelProps} from '../components/top-panel.tsx';
 import type {BottomPanelProps} from '../components/bottom-panel.tsx';
 import {buildDraftIssueUrl, type DraftUrlCustomField} from '../tools/draft-url.ts';
-import type {ViewMode} from '../types.ts';
+import type {ViewMode, ColorScheme, UiPreferences} from '../types.ts';
 import {ConstructorStoreContext, type ConstructorStore} from './constructor-store-context.ts';
 
 const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
 const DEFAULT_VIEW_MODE: ViewMode = 'wide';
+const DEFAULT_COLOR_SCHEME: ColorScheme = 'blue';
 
 export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({children}) => {
   const [api, setApi] = useState<API | null>(null);
@@ -18,9 +19,24 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
 
   const [viewMode, setViewModeState] = useState<ViewMode>(DEFAULT_VIEW_MODE);
   const [viewModeReady, setViewModeReady] = useState(false);
-  const viewModeLoadedRef = useRef(false);
   const viewModeTouchedRef = useRef(false);
-  const pendingViewModeRef = useRef<ViewMode | null>(null);
+
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(DEFAULT_COLOR_SCHEME);
+  const [colorSchemeReady, setColorSchemeReady] = useState(false);
+  const colorSchemeTouchedRef = useRef(false);
+
+  const preferencesLoadedRef = useRef(false);
+  const pendingPreferencesRef = useRef<UiPreferences | null>(null);
+
+  const viewModeRef = useRef<ViewMode>(DEFAULT_VIEW_MODE);
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  const colorSchemeRef = useRef<ColorScheme>(DEFAULT_COLOR_SCHEME);
+  useEffect(() => {
+    colorSchemeRef.current = colorScheme;
+  }, [colorScheme]);
 
   const draftUrlDataRef = useRef<{summary: string; description: string; customFields: DraftUrlCustomField[]}>(
     {summary: '', description: '', customFields: []}
@@ -38,14 +54,14 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     apiRef.current = api;
   }, [api]);
 
-  const persistViewMode = useCallback(async (next: ViewMode) => {
+  const persistUiPreferences = useCallback(async (next: UiPreferences) => {
     const apiInstance = apiRef.current;
     if (!apiInstance) {
-      pendingViewModeRef.current = next;
+      pendingPreferencesRef.current = next;
       return;
     }
     try {
-      await apiInstance.setViewMode(next);
+      await apiInstance.setUiPreferences(next);
     } catch {
       // best-effort
     }
@@ -55,37 +71,50 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     (next: ViewMode) => {
       viewModeTouchedRef.current = true;
       setViewModeState(next);
-      void persistViewMode(next);
+      void persistUiPreferences({viewMode: next, colorScheme: colorSchemeRef.current});
     },
-    [persistViewMode]
+    [persistUiPreferences]
+  );
+
+  const setColorScheme = useCallback(
+    (next: ColorScheme) => {
+      colorSchemeTouchedRef.current = true;
+      setColorSchemeState(next);
+      void persistUiPreferences({viewMode: viewModeRef.current, colorScheme: next});
+    },
+    [persistUiPreferences]
   );
 
   useEffect(() => {
     const apiInstance = apiRef.current;
-    if (!apiInstance || viewModeLoadedRef.current) {
+    if (!apiInstance || preferencesLoadedRef.current) {
       return;
     }
-    viewModeLoadedRef.current = true;
+    preferencesLoadedRef.current = true;
 
     (async () => {
       try {
-        const loaded = await apiInstance.getViewMode();
+        const loaded = await apiInstance.getUiPreferences();
         if (!viewModeTouchedRef.current) {
-          setViewModeState(loaded);
+          setViewModeState(loaded.viewMode);
+        }
+        if (!colorSchemeTouchedRef.current) {
+          setColorSchemeState(loaded.colorScheme);
         }
       } catch {
         // best-effort
       } finally {
         setViewModeReady(true);
+        setColorSchemeReady(true);
       }
 
-      const pending = pendingViewModeRef.current;
+      const pending = pendingPreferencesRef.current;
       if (pending) {
-        pendingViewModeRef.current = null;
-        await persistViewMode(pending);
+        pendingPreferencesRef.current = null;
+        await persistUiPreferences(pending);
       }
     })();
-  }, [api, persistViewMode]);
+  }, [api, persistUiPreferences]);
 
   const {projects, loading: projectsLoading, error: projectsError} = useUserProjects(api);
 
@@ -257,10 +286,12 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
   const bottomPanelProps = useMemo<BottomPanelProps>(
     () => ({
       viewMode,
+      colorScheme,
+      onColorSchemeChange: setColorScheme,
       createDraftDisabled,
       onCreateDraft
     }),
-    [createDraftDisabled, onCreateDraft, viewMode]
+    [colorScheme, createDraftDisabled, onCreateDraft, setColorScheme, viewMode]
   );
 
   const value: ConstructorStore = {
@@ -286,9 +317,15 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     triggerReset,
     viewMode,
     setViewMode,
+    colorScheme,
+    setColorScheme,
     topPanelProps,
     bottomPanelProps
   };
 
-  return <ConstructorStoreContext.Provider value={value}>{viewModeReady ? children : null}</ConstructorStoreContext.Provider>;
+  return (
+    <ConstructorStoreContext.Provider value={value}>
+      {viewModeReady && colorSchemeReady ? children : null}
+    </ConstructorStoreContext.Provider>
+  );
 };

@@ -349,7 +349,7 @@ export const StepsConstructor: React.FC<StepsConstructorProps> = ({
                 <div className="flex items-end gap-2">
                   <textarea
                     id="issue-new-step"
-                    className="h-10 min-w-0 flex-1 resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                    className="h-10 min-w-0 flex-1 resize-y rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
                     placeholder="Describe a step…"
                     value={newStep}
                     onChange={onNewStepChange}

@@ -37,6 +37,13 @@ export interface BugReportDraft {
 
 export type ViewMode = 'wide' | 'fixed';
 
+export type ColorScheme = 'blue' | 'magenta';
+
+export type UiPreferences = {
+  viewMode: ViewMode;
+  colorScheme: ColorScheme;
+};
+
 // YouTrack entities
 
 export interface Project{

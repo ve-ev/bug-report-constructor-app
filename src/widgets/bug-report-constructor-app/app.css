@@ -9,6 +9,23 @@
   margin: 20px;
 }
 
+.widget.scheme-blue {
+  /* Explicitly match Ring UI default blue (RGB 51,105,214) */
+  --ring-main-color: rgb(51, 105, 214);
+  --ring-main-hover-color: rgb(49, 95, 189);
+  --ring-main-active-color: rgb(43, 83, 163);
+  --ring-border-accent-color: rgb(112, 156, 245);
+  --ring-action-link-color: rgb(46, 85, 163);
+}
+
+.widget.scheme-magenta {
+  --ring-main-color: rgb(255, 0, 140);
+  --ring-main-hover-color: rgb(230, 0, 126);
+  --ring-main-active-color: rgb(204, 0, 112);
+  --ring-border-accent-color: rgb(255, 77, 176);
+  --ring-action-link-color: rgb(204, 0, 112);
+}
+
 .widgetFixed {
   /* Keep the same outer margins as the default (wide) layout,
      but center the content and constrain its width. */

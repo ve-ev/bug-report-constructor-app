@@ -376,7 +376,7 @@ export const SummaryRow: React.FC<SummaryRowProps> = ({
   return (
     <div ref={containerRef} className="relative w-full">
       <FieldDropzone isOver={isOver} setNodeRef={setNodeRef} className="w-full p-1">
-        <div className="relative flex w-full items-center rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-pink-400/60">
+        <div className="relative flex w-full items-center rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-[var(--ring-border-accent-color)]">
           {selectedText.trim() ? (
             <div className="absolute right-2 top-2 z-10">
               <TwButton

@@ -11,6 +11,9 @@
         },
         "fixedViewMode": {
           "type": "boolean"
+        },
+        "colorScheme": {
+          "type": "string"
         }
       }
     }

@@ -21,6 +21,17 @@ function defaultViewMode() {
   return {viewMode: 'wide'};
 }
 
+function defaultColorScheme() {
+  return {colorScheme: 'blue'};
+}
+
+function defaultUiPreferences() {
+  return {
+    viewMode: defaultViewMode().viewMode,
+    colorScheme: defaultColorScheme().colorScheme
+  };
+}
+
 function isRecord(value) {
   return !!value && typeof value === 'object';
 }
@@ -221,25 +232,51 @@ exports.httpHandler = {
       }
     },
     {
+      method: 'GET',
+      path: 'ui-preferences',
+      handle: function handle(ctx) {
+        const props = getExtensionProperties(ctx);
+
+        const viewMode = props && typeof props.fixedViewMode === 'boolean' ? (props.fixedViewMode ? 'fixed' : 'wide') : null;
+        const scheme = props && typeof props.colorScheme === 'string' ? props.colorScheme : null;
+
+        const normalizedScheme = scheme === 'blue' || scheme === 'magenta' ? scheme : null;
+
+        ctx.response.json({
+          viewMode: viewMode || defaultUiPreferences().viewMode,
+          colorScheme: normalizedScheme || defaultUiPreferences().colorScheme
+        });
+      }
+    },
+    {
       method: 'POST',
-      path: 'view-mode',
+      path: 'ui-preferences',
       handle: function handle(ctx) {
         const payload = ctx.request.json();
         const props = getExtensionProperties(ctx);
 
         const viewMode = payload && typeof payload.viewMode === 'string' ? payload.viewMode : '';
+        const scheme = payload && typeof payload.colorScheme === 'string' ? payload.colorScheme : '';
+
         if (viewMode !== 'fixed' && viewMode !== 'wide') {
           ctx.response.json({
-            error: 'Invalid payload for view mode.'
+            error: 'Invalid payload for UI preferences (view mode).'
+          });
+          return;
+        }
+        if (scheme !== 'blue' && scheme !== 'magenta') {
+          ctx.response.json({
+            error: 'Invalid payload for UI preferences (color scheme).'
           });
           return;
         }
 
         if (props) {
           props.fixedViewMode = viewMode === 'fixed';
+          props.colorScheme = scheme;
         }
 
-        ctx.response.json({viewMode});
+        ctx.response.json({viewMode, colorScheme: scheme});
       }
     }
   ]

@@ -197,7 +197,7 @@ const CustomFieldsExpandedBody: React.FC<{
                     value={sel.value}
                     onChange={e => onValueChange(sel.id, e.target.value)}
                     placeholder="Type a value"
-                    className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                    className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
                   />
                 )}
               </div>

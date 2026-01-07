@@ -8,10 +8,12 @@ import {ConstructorStoreProvider} from './store/constructor-store.tsx';
 import {useConstructorStore} from './store/constructor-store-context.ts';
 
 const AppContent: React.FC = () => {
-  const {showPlayground, closePlayground, topPanelProps, bottomPanelProps, viewMode} = useConstructorStore();
+  const {showPlayground, closePlayground, topPanelProps, bottomPanelProps, viewMode, colorScheme} = useConstructorStore();
 
   return (
-    <div className={viewMode === 'fixed' ? 'widget widgetFixed' : 'widget'}>
+    <div
+      className={(viewMode === 'fixed' ? 'widget widgetFixed' : 'widget') + ` scheme-${colorScheme}`}
+    >
       {showPlayground ? (
         <ApiPlayground onClose={closePlayground}/>
       ) : (

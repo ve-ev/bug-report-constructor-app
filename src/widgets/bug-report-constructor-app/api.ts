@@ -4,7 +4,10 @@ import {
     DraftIssue,
     OutputFormatsPayload,
     Project,
-    SavedBlocks
+    SavedBlocks,
+    type ColorScheme,
+    type UiPreferences,
+    type ViewMode
 } from './types.ts';
 import {HostAPI} from "../../../@types/globals";
 
@@ -93,16 +96,18 @@ export class API {
         });
     }
 
-    async getViewMode(): Promise<'fixed' | 'wide'> {
-        const result = await this.fetch<{viewMode?: unknown}>('view-mode', {method: 'GET'});
-        return result.viewMode === 'fixed' ? 'fixed' : 'wide';
+    async getUiPreferences(): Promise<UiPreferences> {
+        const result = await this.fetch<{viewMode?: unknown; colorScheme?: unknown}>('ui-preferences', {method: 'GET'});
+        const viewMode: ViewMode = result.viewMode === 'fixed' ? 'fixed' : 'wide';
+        const colorScheme: ColorScheme = result.colorScheme === 'magenta' ? 'magenta' : 'blue';
+        return {viewMode, colorScheme};
     }
 
-    async setViewMode(viewMode: 'fixed' | 'wide'): Promise<void> {
-        await this.fetch('view-mode', {
+    async setUiPreferences(prefs: UiPreferences): Promise<void> {
+        await this.fetch('ui-preferences', {
             method: 'POST',
             sendRawBody: false,
-            body: {viewMode},
+            body: prefs,
             headers: {
                 'Content-Type': 'application/json'
             }

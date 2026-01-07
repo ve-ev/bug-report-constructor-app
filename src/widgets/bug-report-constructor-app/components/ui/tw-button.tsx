@@ -12,17 +12,22 @@ const SIZE_CLASS_BY_SIZE: Record<TwButtonSize, string> = {
 };
 
 const VARIANT_CLASS_BY_VARIANT: Record<TwButtonVariant, string> = {
-  primary: 'border border-pink-500 bg-pink-500 text-white hover:border-pink-600 hover:bg-pink-600 active:bg-pink-700',
+  primary:
+    'border border-[var(--ring-main-color)] bg-[var(--ring-main-color)] text-[var(--ring-white-text-color)] ' +
+    'hover:border-[var(--ring-main-hover-color)] hover:bg-[var(--ring-main-hover-color)] ' +
+    'active:bg-[var(--ring-main-active-color)]',
   danger: 'border border-red-500 bg-red-500 text-white hover:border-red-600 hover:bg-red-600 active:bg-red-700',
   dangerGhost:
     'bg-transparent text-[var(--ring-text-color)] hover:bg-red-500/10 hover:text-red-600 active:bg-red-500/20 active:text-red-700',
   ghost:
-    'bg-transparent text-[var(--ring-text-color)] hover:bg-[rgba(255,0,140,0.10)] active:bg-[rgba(255,0,140,0.18)]',
+    'bg-transparent text-[var(--ring-text-color)] ' +
+    'hover:bg-[color-mix(in_srgb,var(--ring-main-color)_10%,transparent)] ' +
+    'active:bg-[color-mix(in_srgb,var(--ring-main-color)_18%,transparent)]',
   secondary:
     'border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] text-[var(--ring-text-color)] ' +
     // Keep hover/active fully opaque (no alpha background) while still providing visual feedback.
-    'hover:border-pink-400 hover:bg-[var(--ring-content-background-color)] hover:shadow-sm ' +
-    'active:border-pink-500 active:bg-[var(--ring-content-background-color)]'
+    'hover:border-[var(--ring-border-hover-color)] hover:bg-[var(--ring-content-background-color)] hover:shadow-sm ' +
+    'active:border-[var(--ring-border-accent-color)] active:bg-[var(--ring-content-background-color)]'
 };
 
 export interface TwButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -41,7 +46,7 @@ export const TwButton: React.FC<TwButtonProps> = props => {
 
   const base =
     'inline-flex select-none items-center justify-center gap-1 rounded-md font-medium outline-none transition ' +
-    'focus-visible:ring-2 focus-visible:ring-pink-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ring-content-background-color)] ' +
+    'focus-visible:ring-2 focus-visible:ring-[var(--ring-border-accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ring-content-background-color)] ' +
     'disabled:pointer-events-none disabled:opacity-50';
 
   const sizeClass = SIZE_CLASS_BY_SIZE[size];

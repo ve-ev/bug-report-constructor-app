@@ -331,7 +331,7 @@ export const ApiPlayground: React.FunctionComponent<ApiPlaygroundProps> = ({onCl
               value={draftProjectId}
               onChange={e => setDraftProjectId(e.target.value)}
               placeholder="e.g. 0-0"
-              className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+              className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
             />
           </FieldComponent>
 
@@ -341,7 +341,7 @@ export const ApiPlayground: React.FunctionComponent<ApiPlaygroundProps> = ({onCl
               value={draftIssueId}
               onChange={e => setDraftIssueId(e.target.value)}
               placeholder="filled after Create Draft"
-              className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+              className="w-full rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
             />
           </FieldComponent>
         </div>

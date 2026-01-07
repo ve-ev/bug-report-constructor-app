@@ -4,7 +4,7 @@
   "description": "YouTrack app that helps you quickly assemble a consistent bug report from reusable blocks and a guided form and create an issue draft with the generated description.",
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "version": "1.1.0",
-  "changeNotes": "<h2>Version 1.1.0</h3> <p><b>New feature:</b> Fixed width view mode</br></p>",
+  "changeNotes": "<h2>Version 1.1.0</h2><ul><li><b>New feature:</b> Fixed width view mode</li><li><b>UI:</b> Updated color scheme</li></ul>",
   "vendor": {
     "name": "E.V",
     "url": "https://github.com/ve-ev"

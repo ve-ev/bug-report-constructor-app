@@ -82,7 +82,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
     return (
       <div
         ref={setNodeRef}
-        className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(255,0,140,0.10)] active:cursor-grabbing active:bg-[rgba(255,0,140,0.18)]"
+        className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[color-mix(in_srgb,var(--ring-main-color)_10%,transparent)] active:cursor-grabbing active:bg-[color-mix(in_srgb,var(--ring-main-color)_18%,transparent)]"
         style={style}
         {...attributes}
       >
@@ -117,7 +117,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
   return (
     <div
       ref={setNodeRef}
-      className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(255,0,140,0.10)] active:cursor-grabbing active:bg-[rgba(255,0,140,0.18)]"
+      className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[color-mix(in_srgb,var(--ring-main-color)_10%,transparent)] active:cursor-grabbing active:bg-[color-mix(in_srgb,var(--ring-main-color)_18%,transparent)]"
       style={style}
       title="Double click to insert. Drag into a section."
       onPointerDownCapture={onBlockPointerDown}
@@ -257,7 +257,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
   ];
 
   return (
-    <div className="overflow-hidden rounded-md border border-[var(--ring-borders-color)] border-l-4 border-l-pink-400/70 bg-[var(--ring-content-background-color)] shadow-sm ring-1 ring-pink-400/20">
+    <div className="overflow-hidden rounded-md border border-[var(--ring-borders-color)] border-l-4 border-l-[var(--ring-main-color)] bg-[var(--ring-content-background-color)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--ring-main-color)_20%,transparent)]">
       <div className="flex flex-col gap-2 border-b border-[var(--ring-borders-color)] p-3">
         <div className="text-[13px] font-semibold">Saved Blocks</div>
         <div className="flex flex-wrap gap-2">
@@ -287,7 +287,7 @@ export const SavedBlocksPanel: React.FC<SavedBlocksPanelProps> = props => {
 
         <div className="flex gap-2">
           <input
-            className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+            className="min-w-0 flex-1 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
             value={newBlockText}
             onChange={onChangeNewBlockText}
             onKeyDown={onNewBlockKeyDown}

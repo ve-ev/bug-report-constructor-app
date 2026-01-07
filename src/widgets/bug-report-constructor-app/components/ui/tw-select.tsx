@@ -142,9 +142,9 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
         return 'w-full cursor-not-allowed rounded px-3 py-2 text-left text-[13px] leading-5 opacity-60';
       }
       if (item.value === value) {
-        return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[rgba(255,0,140,0.12)]';
+        return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[color-mix(in_srgb,var(--ring-main-color)_12%,transparent)]';
       }
-      return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[rgba(255,0,140,0.10)]';
+      return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[color-mix(in_srgb,var(--ring-main-color)_10%,transparent)]';
     },
     [value]
   );
@@ -174,7 +174,7 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
         disabled={disabled}
         onClick={onToggle}
         onKeyDown={onKeyDown}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-left text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60 disabled:opacity-60"
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-transparent px-3 py-2 text-left text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)] disabled:opacity-60"
       >
         <span className="min-w-0 flex-1 truncate">{resolvedLabel}</span>
         <span className="shrink-0 opacity-70" aria-hidden="true">
@@ -200,7 +200,7 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search…"
-                className="w-full rounded border border-[var(--ring-borders-color)] bg-transparent px-2 py-1 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+                className="w-full rounded border border-[var(--ring-borders-color)] bg-transparent px-2 py-1 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
               />
             </div>
           ) : null}

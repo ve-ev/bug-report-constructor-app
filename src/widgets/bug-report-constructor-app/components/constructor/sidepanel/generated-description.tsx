@@ -30,7 +30,7 @@ export const GeneratedDescription: React.FC<GeneratedDescriptionProps> = props =
           readOnly
           value={description}
           onFocus={onGeneratedDescriptionFocus}
-          className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-pink-400/60"
+          className="w-full resize-y rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] px-3 py-2 text-[13px] leading-5 outline-none focus:ring-2 focus:ring-[var(--ring-border-accent-color)]"
         />
         <div>
           <TwButton variant="primary" onClick={onCopyDescription}>
