@@ -1,6 +1,7 @@
 import React from 'react';
 
 import type {AdaptiveFieldConfig, AdaptiveFieldKey} from '../../../utils/template-ui.ts';
+import type {ViewMode} from '../../../types.ts';
 import type {SavedBlocksTab} from '../sidepanel/saved-blocks-panel.tsx';
 import type {StepItem} from './steps-constructor.tsx';
 import {PreconditionsRow} from './preconditions-row.tsx';
@@ -10,6 +11,7 @@ import {Optional} from '../../ui/optional.tsx';
 import {TwTextarea} from '../../ui/tw-textarea.tsx';
 
 export type IssueFormProps = {
+  viewMode: ViewMode;
   adaptiveFields: Record<AdaptiveFieldKey, AdaptiveFieldConfig>;
   activeDrag: {tab: SavedBlocksTab; text: string} | null;
 
@@ -39,6 +41,7 @@ export type IssueFormProps = {
 
 export const IssueForm: React.FC<IssueFormProps> = props => {
   const {
+    viewMode,
     adaptiveFields,
     activeDrag,
     preconditions,
@@ -89,7 +92,7 @@ export const IssueForm: React.FC<IssueFormProps> = props => {
           />
         </Optional>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className={viewMode === 'fixed' ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 gap-4 xl:grid-cols-2'}>
           <Optional when={adaptiveFields.expected.visible}>
             <FieldComponent label={adaptiveFields.expected.label} htmlFor="expected">
               <TwTextarea id="expected" rows={4} value={expected} onChange={onExpectedChange}/>

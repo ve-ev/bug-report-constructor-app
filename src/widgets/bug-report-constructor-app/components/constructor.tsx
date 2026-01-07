@@ -69,7 +69,8 @@ const ConstructorImpl: React.FC = () => {
     draftIssueId,
     draftError,
     draftRevision,
-    resetSignal
+    resetSignal,
+    viewMode
   } = useConstructorStore();
 
   const [selectedCustomFields, setSelectedCustomFields] = useState<SelectedCustomField[]>([]);
@@ -629,6 +630,7 @@ const ConstructorImpl: React.FC = () => {
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <IssueForm
+            viewMode={viewMode}
             adaptiveFields={adaptiveFields}
             activeDrag={activeDrag}
             preconditions={preconditions}

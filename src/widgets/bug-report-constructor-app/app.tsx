@@ -8,10 +8,10 @@ import {ConstructorStoreProvider} from './store/constructor-store.tsx';
 import {useConstructorStore} from './store/constructor-store-context.ts';
 
 const AppContent: React.FC = () => {
-  const {showPlayground, closePlayground, topPanelProps, bottomPanelProps} = useConstructorStore();
+  const {showPlayground, closePlayground, topPanelProps, bottomPanelProps, viewMode} = useConstructorStore();
 
   return (
-    <div className="widget">
+    <div className={viewMode === 'fixed' ? 'widget widgetFixed' : 'widget'}>
       {showPlayground ? (
         <ApiPlayground onClose={closePlayground}/>
       ) : (

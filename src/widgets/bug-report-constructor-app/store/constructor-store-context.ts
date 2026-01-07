@@ -2,6 +2,7 @@ import {createContext, useContext} from 'react';
 
 import type {API} from '../api.ts';
 import type {Project} from '../types.ts';
+import type {ViewMode} from '../types.ts';
 import type {TopPanelProps} from '../components/top-panel.tsx';
 import type {BottomPanelProps} from '../components/bottom-panel.tsx';
 import type {DraftUrlCustomField} from '../tools/draft-url.ts';
@@ -33,6 +34,9 @@ export type ConstructorStore = {
 
   resetSignal: number;
   triggerReset: () => void;
+
+  viewMode: ViewMode;
+  setViewMode: (next: ViewMode) => void;
 
   topPanelProps: TopPanelProps;
   bottomPanelProps: BottomPanelProps;

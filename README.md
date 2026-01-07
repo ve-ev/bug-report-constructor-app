@@ -10,6 +10,7 @@ A YouTrack widget that helps you **quickly assemble a consistent bug report** fr
 - **Generated description preview**: see the final description as you build it and **copy to clipboard** (if needed).
 - **Output formats / templates**: use the default Markdown output and switch to custom formats when configured.
 - **Draft-aware custom fields**: can load and use custom fields from a draft issue context (when available).
+- **View modes**: switch between **Wide** (default) and **Fixed (1200px)** layout.
 
 ## Stack
 

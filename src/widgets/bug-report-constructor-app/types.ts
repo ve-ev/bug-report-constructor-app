@@ -35,6 +35,8 @@ export interface BugReportDraft {
   attachments: {name: string}[];
 }
 
+export type ViewMode = 'wide' | 'fixed';
+
 // YouTrack entities
 
 export interface Project{

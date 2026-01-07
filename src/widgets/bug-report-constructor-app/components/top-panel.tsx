@@ -1,12 +1,17 @@
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo} from 'react';
+import {ArrowsPointingInIcon, ArrowsRightLeftIcon} from '@heroicons/react/20/solid';
 
 import type {Project} from '../types.ts';
+import type {ViewMode} from '../types.ts';
 import {TwButton} from './ui/tw-button.tsx';
 import {TwSelect, type TwSelectItem} from './ui/tw-select.tsx';
 
 export type TopPanelProps = {
   onResetForm: () => void;
   onOpenPlayground?: () => void;
+
+  viewMode: ViewMode;
+  onViewModeChange: (next: ViewMode) => void;
 
   projectSelectDisabled: boolean;
   selectedProjectId: string;
@@ -21,6 +26,8 @@ export const TopPanel: React.FC<TopPanelProps> = props => {
   const {
     onResetForm,
     onOpenPlayground,
+    viewMode,
+    onViewModeChange,
     projectSelectDisabled,
     selectedProjectId,
     projects,
@@ -28,6 +35,12 @@ export const TopPanel: React.FC<TopPanelProps> = props => {
     onSelectedProjectIdChange,
     projectsError
   } = props;
+
+  const nextViewMode: ViewMode = viewMode === 'fixed' ? 'wide' : 'fixed';
+
+  const onToggleViewMode = useCallback(() => {
+    onViewModeChange(nextViewMode);
+  }, [onViewModeChange, nextViewMode]);
 
   const projectsSelectItems = useMemo((): Array<TwSelectItem<string>> => {
     const base: Array<TwSelectItem<string>> = [];
@@ -79,6 +92,20 @@ export const TopPanel: React.FC<TopPanelProps> = props => {
             onChange={onSelectedProjectIdChange}
             className="w-[240px]"
           />
+
+          <TwButton
+            variant="ghost"
+            size="xs"
+            onClick={onToggleViewMode}
+            title={nextViewMode === 'wide' ? 'Switch to wide view' : 'Switch to fixed width (1200px) view'}
+            aria-label={nextViewMode === 'wide' ? 'Switch to wide view' : 'Switch to fixed width (1200px) view'}
+          >
+            {nextViewMode === 'wide' ? (
+              <ArrowsRightLeftIcon className="h-4 w-4" aria-hidden={true}/>
+            ) : (
+              <ArrowsPointingInIcon className="h-4 w-4" aria-hidden={true}/>
+            )}
+          </TwButton>
         </div>
       </div>
 

@@ -9,6 +9,14 @@
   margin: 20px;
 }
 
+.widgetFixed {
+  /* Keep the same outer margins as the default (wide) layout,
+     but center the content and constrain its width. */
+  width: calc(100% - 40px);
+  max-width: 1200px;
+  margin: 20px auto;
+}
+
 .topBar {
   display: flex;
   justify-content: flex-start;

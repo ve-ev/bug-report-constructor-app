@@ -6,13 +6,30 @@ import {useDraftIssue} from '../tools/use-draft-issue.ts';
 import type {TopPanelProps} from '../components/top-panel.tsx';
 import type {BottomPanelProps} from '../components/bottom-panel.tsx';
 import {buildDraftIssueUrl, type DraftUrlCustomField} from '../tools/draft-url.ts';
+import {safeGetItem, safeSetItem} from '../tools/safe-storage.ts';
+import type {ViewMode} from '../types.ts';
 import {ConstructorStoreContext, type ConstructorStore} from './constructor-store-context.ts';
 
 const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
+const VIEW_MODE_STORAGE_KEY = 'brc:viewMode';
+const DEFAULT_VIEW_MODE: ViewMode = 'wide';
 
 export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({children}) => {
   const [api, setApi] = useState<API | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    const stored = safeGetItem(VIEW_MODE_STORAGE_KEY);
+    return stored === 'fixed' || stored === 'wide' ? stored : DEFAULT_VIEW_MODE;
+  });
+
+  const setViewMode = useCallback((next: ViewMode) => {
+    setViewModeState(next);
+  }, []);
+
+  useEffect(() => {
+    safeSetItem(VIEW_MODE_STORAGE_KEY, viewMode);
+  }, [viewMode]);
 
   const draftUrlDataRef = useRef<{summary: string; description: string; customFields: DraftUrlCustomField[]}>(
     {summary: '', description: '', customFields: []}
@@ -174,6 +191,8 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     () => ({
       onResetForm: triggerReset,
       onOpenPlayground: playgroundUnlocked ? openPlayground : undefined,
+      viewMode,
+      onViewModeChange: setViewMode,
       projectSelectDisabled,
       selectedProjectId,
       projects,
@@ -184,6 +203,8 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     [
       openPlayground,
       playgroundUnlocked,
+      setViewMode,
+      viewMode,
       projectSelectDisabled,
       projects,
       projectsError,
@@ -195,10 +216,11 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
 
   const bottomPanelProps = useMemo<BottomPanelProps>(
     () => ({
+      viewMode,
       createDraftDisabled,
       onCreateDraft
     }),
-    [createDraftDisabled, onCreateDraft]
+    [createDraftDisabled, onCreateDraft, viewMode]
   );
 
   const value: ConstructorStore = {
@@ -222,6 +244,8 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     playgroundUnlocked,
     resetSignal,
     triggerReset,
+    viewMode,
+    setViewMode,
     topPanelProps,
     bottomPanelProps
   };
