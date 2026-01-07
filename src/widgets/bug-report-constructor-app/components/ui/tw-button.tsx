@@ -17,7 +17,7 @@ const VARIANT_CLASS_BY_VARIANT: Record<TwButtonVariant, string> = {
   dangerGhost:
     'bg-transparent text-[var(--ring-text-color)] hover:bg-red-500/10 hover:text-red-600 active:bg-red-500/20 active:text-red-700',
   ghost:
-    'bg-transparent text-[var(--ring-text-color)] hover:bg-[rgba(236,72,153,0.10)] active:bg-[rgba(236,72,153,0.18)]',
+    'bg-transparent text-[var(--ring-text-color)] hover:bg-[rgba(255,0,140,0.10)] active:bg-[rgba(255,0,140,0.18)]',
   secondary:
     'border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] text-[var(--ring-text-color)] ' +
     // Keep hover/active fully opaque (no alpha background) while still providing visual feedback.

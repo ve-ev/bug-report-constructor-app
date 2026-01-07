@@ -142,9 +142,9 @@ export function TwSelect<T extends string>(props: TwSelectProps<T>): React.React
         return 'w-full cursor-not-allowed rounded px-3 py-2 text-left text-[13px] leading-5 opacity-60';
       }
       if (item.value === value) {
-        return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[rgba(236,72,153,0.12)]';
+        return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 bg-[rgba(255,0,140,0.12)]';
       }
-      return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[rgba(236,72,153,0.10)]';
+      return 'w-full rounded px-3 py-2 text-left text-[13px] leading-5 hover:bg-[rgba(255,0,140,0.10)]';
     },
     [value]
   );

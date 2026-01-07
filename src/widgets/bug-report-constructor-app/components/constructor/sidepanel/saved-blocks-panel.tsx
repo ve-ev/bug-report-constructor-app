@@ -82,7 +82,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
     return (
       <div
         ref={setNodeRef}
-        className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(236,72,153,0.10)] active:cursor-grabbing active:bg-[rgba(236,72,153,0.18)]"
+        className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(255,0,140,0.10)] active:cursor-grabbing active:bg-[rgba(255,0,140,0.18)]"
         style={style}
         {...attributes}
       >
@@ -117,7 +117,7 @@ const DraggableBlock: React.FC<DraggableBlockProps> = ({tab, text, index, onClic
   return (
     <div
       ref={setNodeRef}
-      className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(236,72,153,0.10)] active:cursor-grabbing active:bg-[rgba(236,72,153,0.18)]"
+      className="group flex cursor-grab items-start justify-between gap-2 rounded-md border border-[var(--ring-borders-color)] bg-[var(--ring-content-background-color)] p-2 hover:bg-[rgba(255,0,140,0.10)] active:cursor-grabbing active:bg-[rgba(255,0,140,0.18)]"
       style={style}
       title="Double click to insert. Drag into a section."
       onPointerDownCapture={onBlockPointerDown}

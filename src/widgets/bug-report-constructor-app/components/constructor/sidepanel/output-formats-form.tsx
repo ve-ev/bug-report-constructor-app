@@ -165,7 +165,7 @@ const CustomFormatsEditor: React.FC<{
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-md border border-pink-400/40 bg-[rgba(236,72,153,0.08)] px-3 py-2 text-[13px] text-[var(--ring-text-color)]">
+      <div className="rounded-md border border-pink-400/40 bg-[rgba(255,0,140,0.08)] px-3 py-2 text-[13px] text-[var(--ring-text-color)]">
         <span className="font-semibold">Placeholders:</span>{' '}
         {PLACEHOLDERS.map((p, idx) => (
           <React.Fragment key={p}>

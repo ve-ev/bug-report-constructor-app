@@ -44,7 +44,7 @@ export function TwButtonGroup<T extends string>(props: TwButtonGroupProps<T>) {
               'px-3 py-1.5 text-[13px] leading-5 outline-none transition focus-visible:ring-2 focus-visible:ring-pink-400/60 disabled:opacity-50',
               active
                 ? 'bg-pink-500 text-white'
-                : 'bg-[var(--ring-content-background-color)] text-[var(--ring-text-color)] hover:bg-[rgba(236,72,153,0.10)]'
+                : 'bg-[var(--ring-content-background-color)] text-[var(--ring-text-color)] hover:bg-[rgba(255,0,140,0.10)]'
             )}
             aria-pressed={active}
           >
