@@ -61,7 +61,7 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1" aria-label="Color scheme">
               <label
-                className="group inline-flex cursor-pointer items-center rounded-sm outline-none focus-within:ring-2 focus-within:ring-[var(--ring-border-accent-color)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--ring-content-background-color)]"
+                className="group inline-flex cursor-pointer items-center rounded-sm"
                 title="Blue"
               >
                 <input
@@ -70,19 +70,20 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                   value="blue"
                   checked={colorScheme === 'blue'}
                   onChange={onSchemeInputChange}
-                  className="sr-only"
+                  className="peer sr-only"
                   aria-label="Blue scheme"
                 />
                 <span
                   className={
-                    'h-4 w-4 rounded-full shadow-sm transition group-hover:shadow'
+                    'h-4 w-4 rounded-full opacity-20 shadow-sm transition-[opacity,box-shadow] group-hover:opacity-100 group-hover:shadow group-focus-within:opacity-100 ' +
+                    'peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring-border-accent-color)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--ring-content-background-color)]'
                   }
                   style={{backgroundColor: 'rgb(51, 105, 214)'}}
                 />
               </label>
 
               <label
-                className="group inline-flex cursor-pointer items-center rounded-sm outline-none focus-within:ring-2 focus-within:ring-[var(--ring-border-accent-color)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--ring-content-background-color)]"
+                className="group inline-flex cursor-pointer items-center rounded-sm"
                 title="Magenta"
               >
                 <input
@@ -91,12 +92,13 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                   value="magenta"
                   checked={colorScheme === 'magenta'}
                   onChange={onSchemeInputChange}
-                  className="sr-only"
+                  className="peer sr-only"
                   aria-label="Magenta scheme"
                 />
                 <span
                   className={
-                    'h-4 w-4 rounded-full shadow-sm transition group-hover:shadow'
+                    'h-4 w-4 rounded-full opacity-20 shadow-sm transition-[opacity,box-shadow] group-hover:opacity-100 group-hover:shadow group-focus-within:opacity-100 ' +
+                    'peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring-border-accent-color)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--ring-content-background-color)]'
                   }
                   style={{backgroundColor: 'rgb(255, 0, 140)'}}
                 />
