@@ -93,6 +93,22 @@ export class API {
         });
     }
 
+    async getViewMode(): Promise<'fixed' | 'wide'> {
+        const result = await this.fetch<{viewMode?: unknown}>('view-mode', {method: 'GET'});
+        return result.viewMode === 'fixed' ? 'fixed' : 'wide';
+    }
+
+    async setViewMode(viewMode: 'fixed' | 'wide'): Promise<void> {
+        await this.fetch('view-mode', {
+            method: 'POST',
+            sendRawBody: false,
+            body: {viewMode},
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+
     async fetch<T = Record<string, unknown>>(path: string, options?: Record<string, unknown>): Promise<T> {
         // `fetchApp` expects the backend endpoint to be addressed as `backend/<path>`.
         // Do not force `scope` here: incorrect scoping may prevent request dispatch in the host.

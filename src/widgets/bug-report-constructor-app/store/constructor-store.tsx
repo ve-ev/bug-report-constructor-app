@@ -6,30 +6,21 @@ import {useDraftIssue} from '../tools/use-draft-issue.ts';
 import type {TopPanelProps} from '../components/top-panel.tsx';
 import type {BottomPanelProps} from '../components/bottom-panel.tsx';
 import {buildDraftIssueUrl, type DraftUrlCustomField} from '../tools/draft-url.ts';
-import {safeGetItem, safeSetItem} from '../tools/safe-storage.ts';
 import type {ViewMode} from '../types.ts';
 import {ConstructorStoreContext, type ConstructorStore} from './constructor-store-context.ts';
 
 const RESET_CLICKS_TO_UNLOCK_PLAYGROUND = 20;
-const VIEW_MODE_STORAGE_KEY = 'brc:viewMode';
 const DEFAULT_VIEW_MODE: ViewMode = 'wide';
 
 export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({children}) => {
   const [api, setApi] = useState<API | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
 
-  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
-    const stored = safeGetItem(VIEW_MODE_STORAGE_KEY);
-    return stored === 'fixed' || stored === 'wide' ? stored : DEFAULT_VIEW_MODE;
-  });
-
-  const setViewMode = useCallback((next: ViewMode) => {
-    setViewModeState(next);
-  }, []);
-
-  useEffect(() => {
-    safeSetItem(VIEW_MODE_STORAGE_KEY, viewMode);
-  }, [viewMode]);
+  const [viewMode, setViewModeState] = useState<ViewMode>(DEFAULT_VIEW_MODE);
+  const [viewModeReady, setViewModeReady] = useState(false);
+  const viewModeLoadedRef = useRef(false);
+  const viewModeTouchedRef = useRef(false);
+  const pendingViewModeRef = useRef<ViewMode | null>(null);
 
   const draftUrlDataRef = useRef<{summary: string; description: string; customFields: DraftUrlCustomField[]}>(
     {summary: '', description: '', customFields: []}
@@ -46,6 +37,55 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
   useEffect(() => {
     apiRef.current = api;
   }, [api]);
+
+  const persistViewMode = useCallback(async (next: ViewMode) => {
+    const apiInstance = apiRef.current;
+    if (!apiInstance) {
+      pendingViewModeRef.current = next;
+      return;
+    }
+    try {
+      await apiInstance.setViewMode(next);
+    } catch {
+      // best-effort
+    }
+  }, []);
+
+  const setViewMode = useCallback(
+    (next: ViewMode) => {
+      viewModeTouchedRef.current = true;
+      setViewModeState(next);
+      void persistViewMode(next);
+    },
+    [persistViewMode]
+  );
+
+  useEffect(() => {
+    const apiInstance = apiRef.current;
+    if (!apiInstance || viewModeLoadedRef.current) {
+      return;
+    }
+    viewModeLoadedRef.current = true;
+
+    (async () => {
+      try {
+        const loaded = await apiInstance.getViewMode();
+        if (!viewModeTouchedRef.current) {
+          setViewModeState(loaded);
+        }
+      } catch {
+        // best-effort
+      } finally {
+        setViewModeReady(true);
+      }
+
+      const pending = pendingViewModeRef.current;
+      if (pending) {
+        pendingViewModeRef.current = null;
+        await persistViewMode(pending);
+      }
+    })();
+  }, [api, persistViewMode]);
 
   const {projects, loading: projectsLoading, error: projectsError} = useUserProjects(api);
 
@@ -250,5 +290,5 @@ export const ConstructorStoreProvider: React.FC<React.PropsWithChildren> = ({chi
     bottomPanelProps
   };
 
-  return <ConstructorStoreContext.Provider value={value}>{children}</ConstructorStoreContext.Provider>;
+  return <ConstructorStoreContext.Provider value={value}>{viewModeReady ? children : null}</ConstructorStoreContext.Provider>;
 };

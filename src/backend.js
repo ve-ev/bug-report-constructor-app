@@ -17,6 +17,10 @@ function defaultOutputFormats() {
   };
 }
 
+function defaultViewMode() {
+  return {viewMode: 'wide'};
+}
+
 function isRecord(value) {
   return !!value && typeof value === 'object';
 }
@@ -200,6 +204,42 @@ exports.httpHandler = {
         }
 
         ctx.response.json(normalized);
+      }
+    },
+    {
+      method: 'GET',
+      path: 'view-mode',
+      handle: function handle(ctx) {
+        const props = getExtensionProperties(ctx);
+
+        if (!props || typeof props.fixedViewMode !== 'boolean') {
+          ctx.response.json(defaultViewMode());
+          return;
+        }
+
+        ctx.response.json({viewMode: props.fixedViewMode ? 'fixed' : 'wide'});
+      }
+    },
+    {
+      method: 'POST',
+      path: 'view-mode',
+      handle: function handle(ctx) {
+        const payload = ctx.request.json();
+        const props = getExtensionProperties(ctx);
+
+        const viewMode = payload && typeof payload.viewMode === 'string' ? payload.viewMode : '';
+        if (viewMode !== 'fixed' && viewMode !== 'wide') {
+          ctx.response.json({
+            error: 'Invalid payload for view mode.'
+          });
+          return;
+        }
+
+        if (props) {
+          props.fixedViewMode = viewMode === 'fixed';
+        }
+
+        ctx.response.json({viewMode});
       }
     }
   ]

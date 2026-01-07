@@ -8,6 +8,9 @@
         },
         "outputFormats": {
           "type": "string"
+        },
+        "fixedViewMode": {
+          "type": "boolean"
         }
       }
     }
